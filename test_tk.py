@@ -1,6 +1,7 @@
 from typing import Tuple, List, Optional
 
-from tkinter import Tk, Canvas
+from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas, N, W, S, E
+from tkinter import ttk
 
 class SketchPad(Canvas):
     def __init__(self, parent, **kwargs) -> None:
@@ -25,25 +26,30 @@ class SketchPad(Canvas):
         parent.bind('z', self._undo)
 
     def _init_line(self, event):
-        self._current_coords = (event.x, event.y)
+        self._current_coords = self._translate_xy(event)
 
     def _draw_line(self, event):
+        xy = self._translate_xy(event)
         if self._is_drawing:
-            self.coords(self._current_line, *self.coords(self._current_line), event.x, event.y)
+            self.coords(self._current_line, *self.coords(self._current_line), *xy)
         else:
-            line_id = self.create_line(*self._current_coords, event.x, event.y, **self._line_style)
+            line_id = self.create_line(*self._current_coords, *xy, **self._line_style)
             self._current_line = line_id
             self._is_drawing = True
-        self._current_coords = (event.x, event.y)
+        self._current_coords = xy
 
     def _end_line(self, _):
         self._lines.append(self._current_line)
         self._is_drawing = False
 
+    def _translate_xy(self, event):
+        return (self.canvasx(event.x), self.canvasy(event.y))
+
     def _undo(self, _):
-        print("undo")
-        if len(self._lines) > 0:
+        try:
             self.delete(self._lines.pop())
+        except IndexError:
+            pass
 
 
 # Mouse
@@ -68,7 +74,18 @@ if __name__ == "__main__":
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    sp = SketchPad(root, width=800, height=600)
-    sp.grid(column=0, row=0)
+    fr = ttk.Frame(root, width=800, height=600)
+    fr.grid(column=0, row=0, sticky='nwse')
+    fr.grid_columnconfigure(0, weight=1)
+    fr.grid_rowconfigure(0, weight=1)
+
+    sp = SketchPad(fr, scrollregion=(0, 0, 1000, 1000), background='black')
+    sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=sp.xview)
+    sy = ttk.Scrollbar(fr, orient=VERTICAL, command=sp.yview)
+    sp.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
+
+    sp.grid(column=0, row=0, sticky='nwse')
+    sx.grid(column=0, row=1, sticky='we')
+    sy.grid(column=1, row=0, sticky='ns')
 
     root.mainloop()
