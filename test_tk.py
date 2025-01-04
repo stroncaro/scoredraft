@@ -7,7 +7,7 @@ class SketchPad(Canvas):
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
-        self._is_drawing: bool = False
+        self._is_dragging: bool = False
         self._current_coords: Tuple[int, int] = (0, 0)
         self._current_line: int = 0
         self._lines: List[int] = []
@@ -17,30 +17,52 @@ class SketchPad(Canvas):
             'fill': 'gray',
             'joinstyle': 'round',
             'capstyle': 'round',
-            # 'smooth': 'bezier', # do not use, laggy
         }
 
-        self.bind('<ButtonPress-1>', self._init_line)
-        self.bind('<B1-Motion>', self._draw_line)
-        self.bind('<ButtonRelease-1>', self._end_line)
+        # needed for drag scrolling to work
+        self.configure(xscrollincrement=1, yscrollincrement=1)
+
+        self.bind('<ButtonPress-1>', self._init_line_drag)
+        self.bind('<B1-Motion>', self._line_drag)
+        self.bind('<ButtonRelease-1>', self._end_line_drag)
+
+        self.bind('<ButtonPress-3>', self._init_scroll_drag)
+        self.bind('<B3-Motion>', self._scroll_drag)
+        self.bind('<ButtonRelease-3>', self._end_scroll_drag)
+
         parent.bind('z', self._undo)
 
-    def _init_line(self, event):
+
+    def _init_line_drag(self, event):
         self._current_coords = self._translate_xy(event)
 
-    def _draw_line(self, event):
+    def _line_drag(self, event):
         xy = self._translate_xy(event)
-        if self._is_drawing:
+        if self._is_dragging:
             self.coords(self._current_line, *self.coords(self._current_line), *xy)
         else:
             line_id = self.create_line(*self._current_coords, *xy, **self._line_style)
             self._current_line = line_id
-            self._is_drawing = True
+            self._is_dragging = True
         self._current_coords = xy
 
-    def _end_line(self, _):
+    def _end_line_drag(self, _):
         self._lines.append(self._current_line)
-        self._is_drawing = False
+        self._is_dragging = False
+
+
+    def _init_scroll_drag(self, event):
+        self._current_coords = event.x, event.y
+
+    def _scroll_drag(self, event):
+        xy = event.x, event.y
+        self.xview('scroll', self._current_coords[0] - xy[0], 'unit')
+        self.yview('scroll', self._current_coords[1] - xy[1], 'unit')
+        self._current_coords = xy
+
+    def _end_scroll_drag(self, _):
+        self._is_dragging = False
+
 
     def _translate_xy(self, event):
         return (self.canvasx(event.x), self.canvasy(event.y))
@@ -50,7 +72,6 @@ class SketchPad(Canvas):
             self.delete(self._lines.pop())
         except IndexError:
             pass
-
 
 # Mouse
 # canvas.bind('<ButtonPress-1>', print)
