@@ -56,8 +56,8 @@ class SketchPad(Canvas):
     def _draw_end(self, event):
         match self._state:
             case SketchPad.STATE.DRAW:
-                w = SketchPad.ITEM_STYLE['width']
-                x1, y1, x2, y2 = event.x - w, event.y - w, event.x + w, event.y + w
+                x, y, w = *self._translate_xy(event), SketchPad.ITEM_STYLE['width']
+                x1, y1, x2, y2 = x - w, y - w, x + w, y + w
                 point_id = self.create_oval(x1, y1, x2, y2, fill=SketchPad.ITEM_STYLE['fill'])
                 self._items.append(point_id)
             case SketchPad.STATE.LINE:
