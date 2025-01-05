@@ -53,6 +53,8 @@ class SketchPad(Canvas):
 
     def _init_scroll_drag(self, event):
         self._current_coords = event.x, event.y
+        # TODO: find way to use grabbing hand cursor
+        self.config(cursor="hand1")
 
     def _scroll_drag(self, event):
         xy = event.x, event.y
@@ -62,6 +64,7 @@ class SketchPad(Canvas):
 
     def _end_scroll_drag(self, _):
         self._is_dragging = False
+        self.config(cursor="")
 
 
     def _translate_xy(self, event):
