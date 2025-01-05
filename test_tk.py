@@ -21,8 +21,18 @@ class SketchPad(Canvas):
         self._curr_item: int = 0
         self._items: List[int] = []
 
-        # needed for drag scrolling to work
-        self.configure(xscrollincrement=1, yscrollincrement=1)
+
+        self.configure(
+            # needed for drag scrolling to work
+            xscrollincrement=1, yscrollincrement=1,
+            # allow going out of scrollregion
+            confine=False,
+        )
+
+        if self.cget('scrollregion'):
+            self._data_bounds = [int(s) for s in self.cget('scrollregion').split()]
+        else:
+            self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -42,6 +52,7 @@ class SketchPad(Canvas):
             return
         self._state = SketchPad.STATE.DRAW
         self._curr_xy = self._translate_xy(event)
+        self._update_data_bounds(*self._curr_xy)
 
     def _draw_drag(self, event):
         xy = self._translate_xy(event)
@@ -55,6 +66,7 @@ class SketchPad(Canvas):
             case _:
                 return
         self._curr_xy = xy
+        self._update_data_bounds(*self._curr_xy)
 
     def _draw_end(self, event):
         match self._state:
@@ -63,6 +75,8 @@ class SketchPad(Canvas):
                 x1, y1, x2, y2 = x - w, y - w, x + w, y + w
                 point_id = self.create_oval(x1, y1, x2, y2, fill=SketchPad.ITEM_STYLE['fill'])
                 self._items.append(point_id)
+                self._update_data_bounds(x1, y1)
+                self._update_data_bounds(x2, y2)
             case SketchPad.STATE.LINE:
                 self._items.append(self._curr_item)
             case _:
@@ -93,13 +107,43 @@ class SketchPad(Canvas):
 
 
     def _translate_xy(self, event):
-        return (self.canvasx(event.x), self.canvasy(event.y))
+        return (int(self.canvasx(event.x)), int(self.canvasy(event.y)))
 
     def _undo(self, _):
         try:
             self.delete(self._items.pop())
         except IndexError:
             pass
+
+    def _update_data_bounds(self, x, y):
+        updated = False
+        if x < self._data_bounds[0]:
+            self._data_bounds[0] = x
+            updated = True
+        if x > self._data_bounds[2]:
+            self._data_bounds[2] = x
+            updated = True
+        if y < self._data_bounds[1]:
+            self._data_bounds[1] = y
+            updated = True
+        if y > self._data_bounds[3]:
+            self._data_bounds[3] = y
+            updated = True
+        if not updated:
+            return
+
+        if not self.cget('scrollregion'):
+            new = tuple(n for n in self._data_bounds)
+        else:
+            old = tuple(int(n) for n in self.cget('scrollregion').split())
+            new = (
+                min(old[0], self._data_bounds[0]),
+                min(old[1], self._data_bounds[1]),
+                max(old[2], self._data_bounds[2]),
+                max(old[3], self._data_bounds[3]),
+            )
+
+        self.config(scrollregion=new)
 
 
 if __name__ == "__main__":
@@ -114,7 +158,7 @@ if __name__ == "__main__":
     fr.grid_columnconfigure(0, weight=1)
     fr.grid_rowconfigure(0, weight=1)
 
-    sp = SketchPad(fr, scrollregion=(0, 0, 1000, 1000), background='black')
+    sp = SketchPad(fr, scrollregion=(0, 0, 400, 400), background='black')
     sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=sp.xview)
     sy = ttk.Scrollbar(fr, orient=VERTICAL, command=sp.yview)
     sp.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
