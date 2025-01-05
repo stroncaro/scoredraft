@@ -1,27 +1,25 @@
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 
-from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas, N, W, S, E
+from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
 from tkinter import ttk
 
 class SketchPad(Canvas):
-
-    State = Enum('State', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
+    STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
+    ITEM_STYLE = {
+        'width': 3,
+        'fill': 'gray',
+        'joinstyle': 'round',
+        'capstyle': 'round',
+    }
 
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
-        self._state: SketchPad.State = SketchPad.State.IDLE
+        self._state: SketchPad.STATE = SketchPad.STATE.IDLE
         self._curr_xy: Tuple[int, int] = (0, 0)
         self._curr_item: int = 0
         self._items: List[int] = []
-
-        self._line_style = {
-            'width': 3,
-            'fill': 'gray',
-            'joinstyle': 'round',
-            'capstyle': 'round',
-        }
 
         # needed for drag scrolling to work
         self.configure(xscrollincrement=1, yscrollincrement=1)
@@ -37,19 +35,19 @@ class SketchPad(Canvas):
         parent.bind('z', self._undo)
 
     def _draw_init(self, event):
-        if self._state != SketchPad.State.IDLE:
+        if self._state != SketchPad.STATE.IDLE:
             return
-        self._state = SketchPad.State.DRAW
+        self._state = SketchPad.STATE.DRAW
         self._curr_xy = self._translate_xy(event)
 
     def _draw_drag(self, event):
         xy = self._translate_xy(event)
         match self._state:
-            case SketchPad.State.DRAW:
-                line_id = self.create_line(*self._curr_xy, *xy, **self._line_style)
+            case SketchPad.STATE.DRAW:
+                line_id = self.create_line(*self._curr_xy, *xy, **SketchPad.ITEM_STYLE)
                 self._curr_item = line_id
-                self._state = SketchPad.State.LINE
-            case SketchPad.State.LINE:
+                self._state = SketchPad.STATE.LINE
+            case SketchPad.STATE.LINE:
                 self.coords(self._curr_item, *self.coords(self._curr_item), *xy)
             case _:
                 return
@@ -57,27 +55,27 @@ class SketchPad(Canvas):
 
     def _draw_end(self, event):
         match self._state:
-            case SketchPad.State.DRAW:
-                w = self._line_style['width']
+            case SketchPad.STATE.DRAW:
+                w = SketchPad.ITEM_STYLE['width']
                 x1, y1, x2, y2 = event.x - w, event.y - w, event.x + w, event.y + w
-                point_id = self.create_oval(x1, y1, x2, y2, fill=self._line_style['fill'])
+                point_id = self.create_oval(x1, y1, x2, y2, fill=SketchPad.ITEM_STYLE['fill'])
                 self._items.append(point_id)
-            case SketchPad.State.LINE:
+            case SketchPad.STATE.LINE:
                 self._items.append(self._curr_item)
             case _:
                 return
-        self._state = SketchPad.State.IDLE
+        self._state = SketchPad.STATE.IDLE
 
     def _scroll_init(self, event):
-        if self._state != SketchPad.State.IDLE:
+        if self._state != SketchPad.STATE.IDLE:
             return
-        self._state = SketchPad.State.SCROLL
+        self._state = SketchPad.STATE.SCROLL
         self._curr_xy = event.x, event.y
         # TODO: find way to use grabbing hand cursor
         self.config(cursor="hand1")
 
     def _scroll_drag(self, event):
-        if self._state != SketchPad.State.SCROLL:
+        if self._state != SketchPad.STATE.SCROLL:
             return
         xy = event.x, event.y
         self.xview('scroll', self._curr_xy[0] - xy[0], 'unit')
@@ -85,9 +83,9 @@ class SketchPad(Canvas):
         self._curr_xy = xy
 
     def _scroll_end(self, _):
-        if self._state != SketchPad.State.SCROLL:
+        if self._state != SketchPad.STATE.SCROLL:
             return
-        self._state = SketchPad.State.IDLE
+        self._state = SketchPad.STATE.IDLE
         self.config(cursor="")
 
 
@@ -99,20 +97,6 @@ class SketchPad(Canvas):
             self.delete(self._items.pop())
         except IndexError:
             pass
-
-# Mouse
-# canvas.bind('<ButtonPress-1>', print)
-# canvas.bind('<B1-Motion>', print)
-# canvas.bind('<ButtonPress-3>', print)
-# canvas.bind('<B3-Motion>', print)
-# canvas.bind('<MouseWheel>', print)
-
-# Keys
-# canvas.bind('<KeyPress-z>', print)
-# canvas.bind('<KeyPress-x>', print)
-
-# Resize (also triggers on canvas creation)
-# canvas.bind('<Configure>', print)
 
 
 if __name__ == "__main__":
