@@ -12,10 +12,9 @@ class SketchPad(Canvas):
         super().__init__(parent, **kwargs)
 
         self._state: SketchPad.State = SketchPad.State.IDLE
-
-        self._current_coords: Tuple[int, int] = (0, 0)
-        self._current_line: int = 0
-        self._lines: List[int] = []
+        self._curr_xy: Tuple[int, int] = (0, 0)
+        self._curr_item: int = 0
+        self._items: List[int] = []
 
         self._line_style = {
             'width': 3,
@@ -41,27 +40,30 @@ class SketchPad(Canvas):
         if self._state != SketchPad.State.IDLE:
             return
         self._state = SketchPad.State.DRAW
-        self._current_coords = self._translate_xy(event)
+        self._curr_xy = self._translate_xy(event)
 
     def _draw_drag(self, event):
         xy = self._translate_xy(event)
         match self._state:
             case SketchPad.State.DRAW:
-                line_id = self.create_line(*self._current_coords, *xy, **self._line_style)
-                self._current_line = line_id
+                line_id = self.create_line(*self._curr_xy, *xy, **self._line_style)
+                self._curr_item = line_id
                 self._state = SketchPad.State.LINE
             case SketchPad.State.LINE:
-                self.coords(self._current_line, *self.coords(self._current_line), *xy)
+                self.coords(self._curr_item, *self.coords(self._curr_item), *xy)
             case _:
                 return
-        self._current_coords = xy
+        self._curr_xy = xy
 
-    def _draw_end(self, _):
+    def _draw_end(self, event):
         match self._state:
             case SketchPad.State.DRAW:
-                pass
+                w = self._line_style['width']
+                x1, y1, x2, y2 = event.x - w, event.y - w, event.x + w, event.y + w
+                point_id = self.create_oval(x1, y1, x2, y2, fill=self._line_style['fill'])
+                self._items.append(point_id)
             case SketchPad.State.LINE:
-                self._lines.append(self._current_line)
+                self._items.append(self._curr_item)
             case _:
                 return
         self._state = SketchPad.State.IDLE
@@ -70,7 +72,7 @@ class SketchPad(Canvas):
         if self._state != SketchPad.State.IDLE:
             return
         self._state = SketchPad.State.SCROLL
-        self._current_coords = event.x, event.y
+        self._curr_xy = event.x, event.y
         # TODO: find way to use grabbing hand cursor
         self.config(cursor="hand1")
 
@@ -78,9 +80,9 @@ class SketchPad(Canvas):
         if self._state != SketchPad.State.SCROLL:
             return
         xy = event.x, event.y
-        self.xview('scroll', self._current_coords[0] - xy[0], 'unit')
-        self.yview('scroll', self._current_coords[1] - xy[1], 'unit')
-        self._current_coords = xy
+        self.xview('scroll', self._curr_xy[0] - xy[0], 'unit')
+        self.yview('scroll', self._curr_xy[1] - xy[1], 'unit')
+        self._curr_xy = xy
 
     def _scroll_end(self, _):
         if self._state != SketchPad.State.SCROLL:
@@ -94,7 +96,7 @@ class SketchPad(Canvas):
 
     def _undo(self, _):
         try:
-            self.delete(self._lines.pop())
+            self.delete(self._items.pop())
         except IndexError:
             pass
 
