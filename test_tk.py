@@ -132,16 +132,10 @@ class SketchPad(Canvas):
         if not updated:
             return
 
-        if not self.cget('scrollregion'):
-            new = tuple(n for n in self._data_bounds)
-        else:
+        new = tuple(n for n in self._data_bounds)
+        if self.cget('scrollregion'):
             old = tuple(int(n) for n in self.cget('scrollregion').split())
-            new = (
-                min(old[0], self._data_bounds[0]),
-                min(old[1], self._data_bounds[1]),
-                max(old[2], self._data_bounds[2]),
-                max(old[3], self._data_bounds[3]),
-            )
+            new = min(old[0], new[0]), min(old[1], new[1]), max(old[2], new[2]), max(old[3], new[3])
 
         self.config(scrollregion=new)
 
