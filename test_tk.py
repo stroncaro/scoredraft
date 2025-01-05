@@ -1,13 +1,17 @@
+from enum import Enum
 from typing import Tuple, List, Optional
 
 from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas, N, W, S, E
 from tkinter import ttk
 
 class SketchPad(Canvas):
+
+    State = Enum('State', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
+
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
-        self._state = 'idle'
+        self._state: SketchPad.State = SketchPad.State.IDLE
 
         self._current_coords: Tuple[int, int] = (0, 0)
         self._current_line: int = 0
@@ -23,65 +27,65 @@ class SketchPad(Canvas):
         # needed for drag scrolling to work
         self.configure(xscrollincrement=1, yscrollincrement=1)
 
-        self.bind('<ButtonPress-1>', self._init_line_drag)
-        self.bind('<B1-Motion>', self._line_drag)
-        self.bind('<ButtonRelease-1>', self._end_line_drag)
+        self.bind('<ButtonPress-1>', self._draw_init)
+        self.bind('<B1-Motion>', self._draw_drag)
+        self.bind('<ButtonRelease-1>', self._draw_end)
 
-        self.bind('<ButtonPress-3>', self._init_scroll_drag)
+        self.bind('<ButtonPress-3>', self._scroll_init)
         self.bind('<B3-Motion>', self._scroll_drag)
-        self.bind('<ButtonRelease-3>', self._end_scroll_drag)
+        self.bind('<ButtonRelease-3>', self._scroll_end)
 
         parent.bind('z', self._undo)
 
-    def _init_line_drag(self, event):
-        if self._state != 'idle':
+    def _draw_init(self, event):
+        if self._state != SketchPad.State.IDLE:
             return
-        self._state = 'line_init'
+        self._state = SketchPad.State.DRAW
         self._current_coords = self._translate_xy(event)
 
-    def _line_drag(self, event):
+    def _draw_drag(self, event):
         xy = self._translate_xy(event)
         match self._state:
-            case 'line_init':
+            case SketchPad.State.DRAW:
                 line_id = self.create_line(*self._current_coords, *xy, **self._line_style)
                 self._current_line = line_id
-                self._state = 'line_draw'
-            case 'line_draw':
+                self._state = SketchPad.State.LINE
+            case SketchPad.State.LINE:
                 self.coords(self._current_line, *self.coords(self._current_line), *xy)
             case _:
                 return
         self._current_coords = xy
 
-    def _end_line_drag(self, _):
+    def _draw_end(self, _):
         match self._state:
-            case 'line_init':
+            case SketchPad.State.DRAW:
                 pass
-            case 'line_draw':
+            case SketchPad.State.LINE:
                 self._lines.append(self._current_line)
             case _:
                 return
-        self._state = 'idle'
+        self._state = SketchPad.State.IDLE
 
-    def _init_scroll_drag(self, event):
-        if self._state != 'idle':
+    def _scroll_init(self, event):
+        if self._state != SketchPad.State.IDLE:
             return
-        self._state = 'drag'
+        self._state = SketchPad.State.SCROLL
         self._current_coords = event.x, event.y
         # TODO: find way to use grabbing hand cursor
         self.config(cursor="hand1")
 
     def _scroll_drag(self, event):
-        if self._state != 'drag':
+        if self._state != SketchPad.State.SCROLL:
             return
         xy = event.x, event.y
         self.xview('scroll', self._current_coords[0] - xy[0], 'unit')
         self.yview('scroll', self._current_coords[1] - xy[1], 'unit')
         self._current_coords = xy
 
-    def _end_scroll_drag(self, _):
-        if self._state != 'drag':
+    def _scroll_end(self, _):
+        if self._state != SketchPad.State.SCROLL:
             return
-        self._state = 'idle'
+        self._state = SketchPad.State.IDLE
         self.config(cursor="")
 
 
