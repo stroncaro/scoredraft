@@ -32,7 +32,10 @@ class SketchPad(Canvas):
         self.bind('<B3-Motion>', self._scroll_drag)
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
-        parent.bind('z', self._undo)
+        self.bind('z', self._undo)
+        self.focus_set()
+
+
 
     def _draw_init(self, event):
         if self._state != SketchPad.STATE.IDLE:
