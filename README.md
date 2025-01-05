@@ -24,7 +24,7 @@ ScoreDraft is a desktop application for freehand music note-taking on an infinit
 
 ### Real-Time Rendering
 - **Problem**: SVG rendering engines typically re-render the entire SVG on updates, which can make real-time drawing sluggish.
-- **Solution**: Use Kivy for real-time rendering while translating user input to SVG in the background.
+- **Solution**: Use Tk for real-time rendering while translating user input to SVG in the background.
 
 ### Line Smoothing
 - **Problem**: Raw input data from freehand drawing may appear jagged or unpolished.
@@ -39,9 +39,9 @@ ScoreDraft is a desktop application for freehand music note-taking on an infinit
 ## Libraries
 
 ### Core Libraries
-1. **Kivy**
+1. **Tk**
    - **Purpose**: GUI rendering and interactive canvas functionality.
-   - **Rationale**: Lightweight, cross-platform, and optimized for real-time user interaction.
+   - **Rationale**: Lightweight, cross-platform.
 
 2. **Cairo**
    - **Purpose**: SVG creation and rendering.
@@ -59,7 +59,7 @@ ScoreDraft is a desktop application for freehand music note-taking on an infinit
    - User content will be stored in SVG to ensure compatibility with external programs and long-term accessibility.
 
 2. **Rendering Workflow**
-   - Use Kivy's real-time drawing capabilities for input responsiveness.
+   - Use Tk's real-time drawing capabilities for input responsiveness.
    - Translate finished strokes into SVG paths asynchronously to minimize delays.
 
 3. **Lightweight Application**
