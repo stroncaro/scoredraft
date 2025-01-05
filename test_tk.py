@@ -52,7 +52,6 @@ class SketchPad(Canvas):
             return
         self._state = SketchPad.STATE.DRAW
         self._curr_xy = self._translate_xy(event)
-        self._update_data_bounds(*self._curr_xy)
 
     def _draw_drag(self, event):
         xy = self._translate_xy(event)
@@ -61,6 +60,7 @@ class SketchPad(Canvas):
                 line_id = self.create_line(*self._curr_xy, *xy, **SketchPad.ITEM_STYLE)
                 self._curr_item = line_id
                 self._state = SketchPad.STATE.LINE
+                self._update_data_bounds(*self._curr_xy)
             case SketchPad.STATE.LINE:
                 self.coords(self._curr_item, *self.coords(self._curr_item), *xy)
             case _:
