@@ -164,7 +164,7 @@ class SketchPad(Canvas):
 
         # Adjust w and h to be multiples of tile size
         tile_w, tile_h = self._bg_tile.size
-        w = w - w % tile_w + tile_w
+        w = w - w % tile_w + 2 * tile_w
         h = h - h % tile_h + tile_h
 
         # Create img and copy already existing background
@@ -197,34 +197,32 @@ class SketchPad(Canvas):
         """xview override to transpose infinite tiling background"""
 
         if len(args) == 0:
-            return super().yview()
+            return super().xview()
 
-        x, y = self.coords(self._bg_id)
-        method, number = args[:2]
-        if method == 'scroll':
-            number = int(number)
-            what = args[2]
-            if what == 'units':
-                inc = None
-                try:
-                    inc = int(self.cget('xscrollincrement'))
-                except ValueError:
-                    pass
-                if inc is None or inc <= 0:
-                    # default unit is 1/10 of viewport
-                    inc = self.winfo_width() // 10
-                x += number * inc
-            else: 
+        method = args[0]
+        number = int(args[1]) if method == 'scroll' else float(args[1])
+        what = args[2] if len(args) > 2 else None
+
+        # Update view_y
+        match (method, what):
+            case ('scroll', 'units'):
+                inc = self.cget('xscrollincrement')
+                unit = self.winfo_width() // 10 if inc == "" or int(inc) <= 0 else int(inc)
+                self._view_x += number * unit
+            case ('scroll', 'pages'):
                 # page is 9/10 of viewport
-                x += int(number * self.winfo_width() * 9 / 10)
-        else:
-            # TODO: fix stuttering problem, due to rounding differences?
-            x_spot = float(number)
-            sr = self.cget('scrollregion').split()
-            x1, x2 = int(sr[0]), int(sr[2])
-            x = int((x2 - x1) * x_spot) + x1
+                unit = self.winfo_width() * 9 / 10
+                self._view_x += int(number * unit)
+            case ('moveto', None):
+                sr = self.cget('scrollregion').split()
+                x1, x2 = int(sr[0]), int(sr[2])
+                self._view_x = int((x2 - x1) * number) + x1
 
-        self.coords(self._bg_id, x, y)
+        # Update background position
+        bg_x, bg_y = self.coords(self._bg_id)
+        bg_x = self._view_x // self._bg_tile.size[0] * self._bg_tile.size[0]
+        self.coords(self._bg_id, bg_x, bg_y)
+
         return super().xview(*args)
 
     def yview(self, *args):
