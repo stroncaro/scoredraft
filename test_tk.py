@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Tuple, List
+from typing import Tuple, List, Literal, Optional
 
 from PIL import Image, ImageTk
 from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
@@ -37,9 +37,11 @@ class SketchPad(Canvas):
         self._bg_tile = Image.open('backgrounds/paper5_1.png')
         self._bg_img = None
         self._bg_imgtk = None
-        self._bg_id = None
+        self._bg_id = -1
         self._bg_w = 0
         self._bg_h = 0
+        self._view_x = 0
+        self._view_y = 0
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -49,7 +51,7 @@ class SketchPad(Canvas):
         self.bind('<B3-Motion>', self._scroll_drag)
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
-        self.bind('<Configure>', self._set_background)
+        self.bind('<Configure>', self._resize_background)
 
         self.bind('z', self._undo)
         self.focus_set()
@@ -107,8 +109,12 @@ class SketchPad(Canvas):
         if self._state != SketchPad.STATE.SCROLL:
             return
         xy = event.x, event.y
-        self.xview('scroll', self._curr_xy[0] - xy[0], 'unit')
-        self.yview('scroll', self._curr_xy[1] - xy[1], 'unit')
+        x_units = self._curr_xy[0] - xy[0]
+        if x_units != 0:
+            self.xview('scroll', str(x_units), 'units')
+        y_units = self._curr_xy[1] - xy[1]
+        if y_units != 0:
+            self.yview('scroll', str(y_units), 'units')
         self._curr_xy = xy
 
     def _scroll_end(self, _):
@@ -151,11 +157,11 @@ class SketchPad(Canvas):
 
         self.config(scrollregion=new)
 
-    def _set_background(self, event):
+    def _resize_background(self, event):
         w, h = event.width, event.height
         if w <= self._bg_w and h <= self._bg_h:
             return
-        
+
         # Adjust w and h to be multiples of tile size
         tile_w, tile_h = self._bg_tile.size
         w = w - w % tile_w + tile_w
@@ -182,11 +188,76 @@ class SketchPad(Canvas):
 
         # Update background
         self._bg_imgtk = ImageTk.PhotoImage(self._bg_img)
-        if self._bg_id is None:
+        if self._bg_id == -1:
             self._bg_id = self.create_image(0, 0, image=self._bg_imgtk, anchor='nw')
         else:
             self.itemconfig(self._bg_id, image=self._bg_imgtk)
 
+    def xview(self, *args):
+        """xview override to transpose infinite tiling background"""
+
+        if len(args) == 0:
+            return super().yview()
+
+        x, y = self.coords(self._bg_id)
+        method, number = args[:2]
+        if method == 'scroll':
+            number = int(number)
+            what = args[2]
+            if what == 'units':
+                inc = None
+                try:
+                    inc = int(self.cget('xscrollincrement'))
+                except ValueError:
+                    pass
+                if inc is None or inc <= 0:
+                    # default unit is 1/10 of viewport
+                    inc = self.winfo_width() // 10
+                x += number * inc
+            else: 
+                # page is 9/10 of viewport
+                x += int(number * self.winfo_width() * 9 / 10)
+        else:
+            # TODO: fix stuttering problem, due to rounding differences?
+            x_spot = float(number)
+            sr = self.cget('scrollregion').split()
+            x1, x2 = int(sr[0]), int(sr[2])
+            x = int((x2 - x1) * x_spot) + x1
+
+        self.coords(self._bg_id, x, y)
+        return super().xview(*args)
+
+    def yview(self, *args):
+        """yview override to transpose infinite tiling background"""
+
+        if len(args) == 0:
+            return super().yview()
+
+        method = args[0]
+        number = int(args[1]) if method == 'scroll' else float(args[1])
+        what = args[2] if len(args) > 2 else None
+
+        # Update view_y
+        match (method, what):
+            case ('scroll', 'units'):
+                inc = self.cget('yscrollincrement')
+                unit = self.winfo_height() // 10 if inc == "" or int(inc) <= 0 else int(inc)
+                self._view_y += number * unit
+            case ('scroll', 'pages'):
+                # page is 9/10 of viewport
+                unit = self.winfo_height() * 9 / 10
+                self._view_y += int(number * unit)
+            case ('moveto', None):
+                sr = self.cget('scrollregion').split()
+                y1, y2 = int(sr[1]), int(sr[3])
+                self._view_y = int((y2 - y1) * number) + y1
+
+        # Update background position
+        bg_x, bg_y = self.coords(self._bg_id)
+        bg_y = self._view_y // self._bg_tile.size[1] * self._bg_tile.size[1]
+        self.coords(self._bg_id, bg_x, bg_y)
+
+        return super().yview(*args)
 
 if __name__ == "__main__":
 
