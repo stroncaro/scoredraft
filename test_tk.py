@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 
 from PIL import Image, ImageTk
 from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
@@ -79,9 +79,13 @@ class SketchPad(Canvas):
     def _draw_end(self, event):
         match self._state:
             case SketchPad.STATE.DRAW:
-                x, y, w = *self._translate_xy(event), SketchPad.ITEM_STYLE['width']
+                x, y, w = *self._translate_xy(event), SketchPad.ITEM_STYLE['width'] - 1
                 x1, y1, x2, y2 = x - w, y - w, x + w, y + w
-                point_id = self.create_oval(x1, y1, x2, y2, fill=SketchPad.ITEM_STYLE['fill'])
+                point_id = self.create_oval(
+                    x1, y1, x2, y2,
+                    fill=SketchPad.ITEM_STYLE['fill'],
+                    outline=SketchPad.ITEM_STYLE['fill'],
+                )
                 self._items.append(point_id)
                 self._update_data_bounds(x1, y1)
                 self._update_data_bounds(x2, y2)
