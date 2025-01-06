@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
+from PIL import Image, ImageTk
 from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
 from tkinter import ttk
 
@@ -21,7 +22,6 @@ class SketchPad(Canvas):
         self._curr_item: int = 0
         self._items: List[int] = []
 
-
         self.configure(
             # needed for drag scrolling to work
             xscrollincrement=1, yscrollincrement=1,
@@ -34,6 +34,13 @@ class SketchPad(Canvas):
         else:
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
+        self._bg_tile = Image.open('backgrounds/paper5_1.png')
+        self._bg_img = None
+        self._bg_imgtk = None
+        self._bg_id = None
+        self._bg_w = 0
+        self._bg_h = 0
+
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
         self.bind('<ButtonRelease-1>', self._draw_end)
@@ -42,9 +49,10 @@ class SketchPad(Canvas):
         self.bind('<B3-Motion>', self._scroll_drag)
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
+        self.bind('<Configure>', self._set_background)
+
         self.bind('z', self._undo)
         self.focus_set()
-
 
 
     def _draw_init(self, event):
@@ -139,6 +147,42 @@ class SketchPad(Canvas):
 
         self.config(scrollregion=new)
 
+    def _set_background(self, event):
+        w, h = event.width, event.height
+        if w <= self._bg_w and h <= self._bg_h:
+            return
+        
+        # Adjust w and h to be multiples of tile size
+        tile_w, tile_h = self._bg_tile.size
+        w = w - w % tile_w + tile_w
+        h = h - h % tile_h + tile_h
+
+        # Create img and copy already existing background
+        new_bg = Image.new('RGB', (w, h))
+        if self._bg_img:
+            new_bg.paste(self._bg_img)
+        self._bg_img = new_bg
+
+        # Fill missing tiles
+        if self._bg_h > 0:
+            for x in range(self._bg_w, w, tile_w):
+                for y in range(0, self._bg_h, tile_h):
+                    self._bg_img.paste(self._bg_tile, (x, y))
+        for x in range(0, w, tile_w):
+            for y in range(self._bg_h, h, tile_h):
+                self._bg_img.paste(self._bg_tile, (x, y))
+
+        # Update background size
+        self._bg_w = w
+        self._bg_h = h
+
+        # Update background
+        self._bg_imgtk = ImageTk.PhotoImage(self._bg_img)
+        if self._bg_id is None:
+            self._bg_id = self.create_image(0, 0, image=self._bg_imgtk, anchor='nw')
+        else:
+            self.itemconfig(self._bg_id, image=self._bg_imgtk)
+
 
 if __name__ == "__main__":
 
@@ -152,7 +196,7 @@ if __name__ == "__main__":
     fr.grid_columnconfigure(0, weight=1)
     fr.grid_rowconfigure(0, weight=1)
 
-    sp = SketchPad(fr, scrollregion=(0, 0, 400, 400), background='black')
+    sp = SketchPad(fr, scrollregion=(0, 0, 400, 400))
     sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=sp.xview)
     sy = ttk.Scrollbar(fr, orient=VERTICAL, command=sp.yview)
     sp.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
