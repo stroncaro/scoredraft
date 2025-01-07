@@ -1,9 +1,11 @@
 from enum import Enum
+from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
+from tkinter import ttk
 from typing import Tuple, List, Literal, Optional
 
 from PIL import Image, ImageTk
-from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
-from tkinter import ttk
+
+from canvas_tile_bg import CanvasTileBackgroundHandler
 
 class SketchPad(Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
@@ -34,14 +36,8 @@ class SketchPad(Canvas):
         else:
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
-        self._bg_tile = Image.open('backgrounds/paper5_1.png')
-        self._bg_img = None
-        self._bg_imgtk = None
-        self._bg_id = -1
-        self._bg_w = 0
-        self._bg_h = 0
-        self._view_x = 0
-        self._view_y = 0
+        tile = Image.open('backgrounds/paper5_1.png')
+        self._tile_bg_handler = CanvasTileBackgroundHandler(self, tile)
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -51,11 +47,19 @@ class SketchPad(Canvas):
         self.bind('<B3-Motion>', self._scroll_drag)
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
-        self.bind('<Configure>', self._resize_background)
+        self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
         self.focus_set()
 
+
+    def xview(self, *args):
+        self._tile_bg_handler.on_xview(*args)
+        return super().xview(*args)
+
+    def yview(self, *args):
+        self._tile_bg_handler.on_yview(*args)
+        return super().yview(*args)
 
     def _draw_init(self, event):
         if self._state != SketchPad.STATE.IDLE:
@@ -156,101 +160,6 @@ class SketchPad(Canvas):
             new = min(old[0], new[0]), min(old[1], new[1]), max(old[2], new[2]), max(old[3], new[3])
 
         self.config(scrollregion=new)
-
-    def _resize_background(self, event):
-        w, h = event.width, event.height
-        if w <= self._bg_w and h <= self._bg_h:
-            return
-
-        # Adjust w and h to be multiples of tile size
-        tile_w, tile_h = self._bg_tile.size
-        w = w - w % tile_w + 2 * tile_w
-        h = h - h % tile_h + tile_h
-
-        # Create img and copy already existing background
-        new_bg = Image.new('RGB', (w, h))
-        if self._bg_img:
-            new_bg.paste(self._bg_img)
-        self._bg_img = new_bg
-
-        # Fill missing tiles
-        if self._bg_h > 0:
-            for x in range(self._bg_w, w, tile_w):
-                for y in range(0, self._bg_h, tile_h):
-                    self._bg_img.paste(self._bg_tile, (x, y))
-        for x in range(0, w, tile_w):
-            for y in range(self._bg_h, h, tile_h):
-                self._bg_img.paste(self._bg_tile, (x, y))
-
-        # Update background size
-        self._bg_w = w
-        self._bg_h = h
-
-        # Update background
-        self._bg_imgtk = ImageTk.PhotoImage(self._bg_img)
-        if self._bg_id == -1:
-            self._bg_id = self.create_image(0, 0, image=self._bg_imgtk, anchor='nw')
-        else:
-            self.itemconfig(self._bg_id, image=self._bg_imgtk)
-
-    def xview(self, *args):
-        """xview override to transpose infinite tiling background"""
-
-        if len(args) == 0:
-            return super().xview()
-
-        self._scroll_bg('x', *args)
-        return super().xview(*args)
-
-    def yview(self, *args):
-        """yview override to transpose infinite tiling background"""
-
-        if len(args) == 0:
-            return super().yview()
-
-        self._scroll_bg('y', *args)
-        return super().yview(*args)
-
-    def _scroll_bg(
-        self,
-        axis: Literal['x'] | Literal['y'],
-        method: Literal['scroll'] | Literal['moveto'],
-        number: str,
-        what: Optional[Literal['units'] | Literal['pages']]=None,
-    ):
-        n = int(number) if method == 'scroll' else float(number)
-
-        if axis == 'x':
-            size = self.winfo_width
-            pos = self._view_x
-        else:
-            size = self.winfo_height
-            pos = self._view_y
-
-        # Calculate new position
-        match (method, what):
-            case ('scroll', 'units'):
-                inc = self.cget(axis + 'scrollincrement')
-                unit = size() // 10 if inc == "" or int(inc) <= 0 else int(inc)
-                pos += n * unit
-            case ('scroll', 'pages'):
-                # page is 9/10 of viewport
-                unit = size() * 9 / 10
-                pos += int(n * unit)
-            case ('moveto', None):
-                x1, y1, x2, y2 = (int(v) for v in self.cget('scrollregion').split())
-                v1, v2 = (x1, x2) if axis == 'x' else (y1, y2)
-                pos = int((v2 - v1) * n) + v1
-
-        # Update axis position and background
-        bg_x, bg_y = self.coords(self._bg_id)
-        if axis == 'x':
-            self._view_x = pos
-            bg_x = self._view_x // self._bg_tile.size[0] * self._bg_tile.size[0]
-        else:
-            self._view_y = pos
-            bg_y = self._view_y // self._bg_tile.size[1] * self._bg_tile.size[1]
-        self.coords(self._bg_id, bg_x, bg_y)
 
 if __name__ == "__main__":
 
