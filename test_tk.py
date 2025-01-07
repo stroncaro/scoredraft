@@ -199,30 +199,7 @@ class SketchPad(Canvas):
         if len(args) == 0:
             return super().xview()
 
-        method = args[0]
-        number = int(args[1]) if method == 'scroll' else float(args[1])
-        what = args[2] if len(args) > 2 else None
-
-        # Update view_y
-        match (method, what):
-            case ('scroll', 'units'):
-                inc = self.cget('xscrollincrement')
-                unit = self.winfo_width() // 10 if inc == "" or int(inc) <= 0 else int(inc)
-                self._view_x += number * unit
-            case ('scroll', 'pages'):
-                # page is 9/10 of viewport
-                unit = self.winfo_width() * 9 / 10
-                self._view_x += int(number * unit)
-            case ('moveto', None):
-                sr = self.cget('scrollregion').split()
-                x1, x2 = int(sr[0]), int(sr[2])
-                self._view_x = int((x2 - x1) * number) + x1
-
-        # Update background position
-        bg_x, bg_y = self.coords(self._bg_id)
-        bg_x = self._view_x // self._bg_tile.size[0] * self._bg_tile.size[0]
-        self.coords(self._bg_id, bg_x, bg_y)
-
+        self._scroll_bg('x', *args)
         return super().xview(*args)
 
     def yview(self, *args):
@@ -231,31 +208,49 @@ class SketchPad(Canvas):
         if len(args) == 0:
             return super().yview()
 
-        method = args[0]
-        number = int(args[1]) if method == 'scroll' else float(args[1])
-        what = args[2] if len(args) > 2 else None
+        self._scroll_bg('y', *args)
+        return super().yview(*args)
 
-        # Update view_y
+    def _scroll_bg(
+        self,
+        axis: Literal['x'] | Literal['y'],
+        method: Literal['scroll'] | Literal['moveto'],
+        number: str,
+        what: Optional[Literal['units'] | Literal['pages']]=None,
+    ):
+        n = int(number) if method == 'scroll' else float(number)
+
+        if axis == 'x':
+            size = self.winfo_width
+            pos = self._view_x
+        else:
+            size = self.winfo_height
+            pos = self._view_y
+
+        # Calculate new position
         match (method, what):
             case ('scroll', 'units'):
-                inc = self.cget('yscrollincrement')
-                unit = self.winfo_height() // 10 if inc == "" or int(inc) <= 0 else int(inc)
-                self._view_y += number * unit
+                inc = self.cget(axis + 'scrollincrement')
+                unit = size() // 10 if inc == "" or int(inc) <= 0 else int(inc)
+                pos += n * unit
             case ('scroll', 'pages'):
                 # page is 9/10 of viewport
-                unit = self.winfo_height() * 9 / 10
-                self._view_y += int(number * unit)
+                unit = size() * 9 / 10
+                pos += int(n * unit)
             case ('moveto', None):
-                sr = self.cget('scrollregion').split()
-                y1, y2 = int(sr[1]), int(sr[3])
-                self._view_y = int((y2 - y1) * number) + y1
+                x1, y1, x2, y2 = (int(v) for v in self.cget('scrollregion').split())
+                v1, v2 = (x1, x2) if axis == 'x' else (y1, y2)
+                pos = int((v2 - v1) * n) + v1
 
-        # Update background position
+        # Update axis position and background
         bg_x, bg_y = self.coords(self._bg_id)
-        bg_y = self._view_y // self._bg_tile.size[1] * self._bg_tile.size[1]
+        if axis == 'x':
+            self._view_x = pos
+            bg_x = self._view_x // self._bg_tile.size[0] * self._bg_tile.size[0]
+        else:
+            self._view_y = pos
+            bg_y = self._view_y // self._bg_tile.size[1] * self._bg_tile.size[1]
         self.coords(self._bg_id, bg_x, bg_y)
-
-        return super().yview(*args)
 
 if __name__ == "__main__":
 
