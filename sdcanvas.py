@@ -1,13 +1,17 @@
 from enum import Enum
-from tkinter import HORIZONTAL, VERTICAL, Tk, Canvas
-from tkinter import ttk
-from typing import Tuple, List, Literal, Optional
+from tkinter import Canvas
+from typing import Tuple, List
 
-from PIL import Image, ImageTk
+from PIL import Image
 
-from canvas_tile_bg import CanvasTileBackgroundHandler
+from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
 
-class SketchPad(Canvas):
+# TODO: refactor state handling and other components into encapsulated parts.
+# Tkinter virtual events can help with decoupling, but a complete rework is needed
+# Current implementation is fine for prototyping, but its important to deal with this debt
+# before expanding the canvas functionality, otherwise the code will become unwieldly fast
+
+class SDCanvas(Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
     ITEM_STYLE = {
         'width': 3,
@@ -19,7 +23,7 @@ class SketchPad(Canvas):
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
-        self._state: SketchPad.STATE = SketchPad.STATE.IDLE
+        self._state: SDCanvas.STATE = SDCanvas.STATE.IDLE
         self._curr_xy: Tuple[int, int] = (0, 0)
         self._curr_item: int = 0
         self._items: List[int] = []
@@ -37,7 +41,7 @@ class SketchPad(Canvas):
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
         tile = Image.open('backgrounds/paper5_1.png')
-        self._tile_bg_handler = CanvasTileBackgroundHandler(self, tile)
+        self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -62,20 +66,20 @@ class SketchPad(Canvas):
         return super().yview(*args)
 
     def _draw_init(self, event):
-        if self._state != SketchPad.STATE.IDLE:
+        if self._state != SDCanvas.STATE.IDLE:
             return
-        self._state = SketchPad.STATE.DRAW
+        self._state = SDCanvas.STATE.DRAW
         self._curr_xy = self._translate_xy(event)
 
     def _draw_drag(self, event):
         xy = self._translate_xy(event)
         match self._state:
-            case SketchPad.STATE.DRAW:
-                line_id = self.create_line(*self._curr_xy, *xy, **SketchPad.ITEM_STYLE)
+            case SDCanvas.STATE.DRAW:
+                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.ITEM_STYLE)
                 self._curr_item = line_id
-                self._state = SketchPad.STATE.LINE
+                self._state = SDCanvas.STATE.LINE
                 self._update_data_bounds(*self._curr_xy)
-            case SketchPad.STATE.LINE:
+            case SDCanvas.STATE.LINE:
                 self.coords(self._curr_item, *self.coords(self._curr_item), *xy)
             case _:
                 return
@@ -84,33 +88,33 @@ class SketchPad(Canvas):
 
     def _draw_end(self, event):
         match self._state:
-            case SketchPad.STATE.DRAW:
-                x, y, w = *self._translate_xy(event), SketchPad.ITEM_STYLE['width'] - 1
+            case SDCanvas.STATE.DRAW:
+                x, y, w = *self._translate_xy(event), SDCanvas.ITEM_STYLE['width'] - 1
                 x1, y1, x2, y2 = x - w, y - w, x + w, y + w
                 point_id = self.create_oval(
                     x1, y1, x2, y2,
-                    fill=SketchPad.ITEM_STYLE['fill'],
-                    outline=SketchPad.ITEM_STYLE['fill'],
+                    fill=SDCanvas.ITEM_STYLE['fill'],
+                    outline=SDCanvas.ITEM_STYLE['fill'],
                 )
                 self._items.append(point_id)
                 self._update_data_bounds(x1, y1)
                 self._update_data_bounds(x2, y2)
-            case SketchPad.STATE.LINE:
+            case SDCanvas.STATE.LINE:
                 self._items.append(self._curr_item)
             case _:
                 return
-        self._state = SketchPad.STATE.IDLE
+        self._state = SDCanvas.STATE.IDLE
 
     def _scroll_init(self, event):
-        if self._state != SketchPad.STATE.IDLE:
+        if self._state != SDCanvas.STATE.IDLE:
             return
-        self._state = SketchPad.STATE.SCROLL
+        self._state = SDCanvas.STATE.SCROLL
         self._curr_xy = event.x, event.y
         # TODO: find way to use grabbing hand cursor
         self.config(cursor="hand1")
 
     def _scroll_drag(self, event):
-        if self._state != SketchPad.STATE.SCROLL:
+        if self._state != SDCanvas.STATE.SCROLL:
             return
         xy = event.x, event.y
         x_units = self._curr_xy[0] - xy[0]
@@ -122,9 +126,9 @@ class SketchPad(Canvas):
         self._curr_xy = xy
 
     def _scroll_end(self, _):
-        if self._state != SketchPad.STATE.SCROLL:
+        if self._state != SDCanvas.STATE.SCROLL:
             return
-        self._state = SketchPad.STATE.IDLE
+        self._state = SDCanvas.STATE.IDLE
         self.config(cursor="")
 
 
@@ -160,26 +164,3 @@ class SketchPad(Canvas):
             new = min(old[0], new[0]), min(old[1], new[1]), max(old[2], new[2]), max(old[3], new[3])
 
         self.config(scrollregion=new)
-
-if __name__ == "__main__":
-
-    root = Tk()
-    root.title('Paint')
-    root.columnconfigure(0, weight=1)
-    root.rowconfigure(0, weight=1)
-
-    fr = ttk.Frame(root, width=800, height=600)
-    fr.grid(column=0, row=0, sticky='nwse')
-    fr.grid_columnconfigure(0, weight=1)
-    fr.grid_rowconfigure(0, weight=1)
-
-    sp = SketchPad(fr, scrollregion=(0, 0, 400, 400))
-    sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=sp.xview)
-    sy = ttk.Scrollbar(fr, orient=VERTICAL, command=sp.yview)
-    sp.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
-
-    sp.grid(column=0, row=0, sticky='nwse')
-    sx.grid(column=0, row=1, sticky='we')
-    sy.grid(column=1, row=0, sticky='ns')
-
-    root.mainloop()
