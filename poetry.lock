@@ -260,6 +260,20 @@ spelling = ["pyenchant (>=3.2,<4.0)"]
 testutils = ["gitpython (>3)"]
 
 [[package]]
+name = "svg-py"
+version = "1.5.0"
+description = "SVG drawing library"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "svg_py-1.5.0-py3-none-any.whl", hash = "sha256:5c467efd5a43e8df4dd6f6d078063f195a04966721d36c43d62f5d7529f908d1"},
+    {file = "svg_py-1.5.0.tar.gz", hash = "sha256:a036d0118176c2498601fab33b9b68dd9754e6a5fa12e4d36cce071b307b5c11"},
+]
+
+[package.extras]
+dev = ["isort", "mypy", "pytest"]
+
+[[package]]
 name = "tomlkit"
 version = "0.13.2"
 description = "Style preserving TOML library"
@@ -284,4 +298,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "d394e988f1570f1031e0ebb519942b15afba3239f6a8621f86edcd3ea3b514d9"
+content-hash = "153ae75f895a2477cc0327c38bbf7730acea7c5e63d77472bd41034ee7a1c3db"
