@@ -58,7 +58,7 @@ class SDCanvas(Canvas):
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
-        self.bind('s', lambda _: self._serializer.save('test.ps', self._data_bounds))
+        self.bind('s', lambda _: self._serializer.save(self._items, self._data_bounds))
         self.focus_set()
 
 

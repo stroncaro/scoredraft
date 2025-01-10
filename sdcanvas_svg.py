@@ -1,7 +1,8 @@
+from itertools import chain
 from tkinter import Canvas
-from typing import Iterable
+from typing import Literal, List, Tuple
 
-import svg
+from svg import Circle, Element, SVG, Polyline
 
 class SDCanvasSvgHandler:
     _canvas: Canvas
@@ -9,12 +10,58 @@ class SDCanvasSvgHandler:
     def __init__(self, canvas: Canvas):
         self._canvas = canvas
 
-    def save(self, dest: str, item_ids: Iterable[int]) -> None:
-        # create new svg
-        # add all items
+    def save(
+        self,
+        item_ids: List[int],
+        bounds: Tuple[float, float, float, float]
+    ) -> None:
+        x = bounds[0]
+        y = bounds[1]
+        w = bounds[2] - x
+        h = bounds[3] - y
+
+        ovals = (self._make_oval(id, x, y) for id in item_ids if self._get_item_type(id) == 'oval')
+        lines = (self._make_line(id, x, y) for id in item_ids if self._get_item_type(id) == 'line')
+        elements: List[Element] = list(chain(ovals, lines))
+        svg = SVG(width=w, height=h, elements=elements)
+
         # add background
         # write to file
         raise NotImplementedError()
+
+    def _get_item_type(self, item_id: int) -> Literal['oval'] | Literal['line']:
+        item_type = self._canvas.type(item_id)
+        match item_type:
+            case 'oval' | 'line':
+                return item_type
+            case _:
+                raise TypeError(f'Invalid item type: {item_type}')
+
+    def _make_oval(self, item_id: int, x_offset: float, y_offset: float) -> Circle:
+        """
+        ITEM 2:
+          item_type='oval'
+          item_coords=[116.0, 95.0, 120.0, 99.0]
+          Width / Fill: 1.0 / gray
+        """
+
+        item_coords = self._canvas.coords(item_id)
+        item_width = self._canvas.itemcget(item_id, 'width')
+        item_fill = self._canvas.itemcget(item_id, 'fill')
+        pass
+
+    def _make_line(self, item_id: int, x_offset: float, y_offset: float) -> Polyline:
+        """
+        ITEM 3:
+          item_type='line'
+          item_coords=[264.0, 72.0, 255.0, 81.0, 246.0, 90.0, 240.0, 98.0, 235.0, 104.0, 231.0, 109.0, 227.0, 113.0, 224.0, 118.0, 219.0, 123.0, 213.0, 130.0, 205.0, 140.0, 194.0, 154.0, 185.0, 167.0, 179.0, 176.0, 174.0, 184.0, 171.0, 188.0, 169.0, 191.0, 168.0, 193.0, 167.0, 194.0, 166.0, 195.0, 165.0, 195.0, 165.0, 196.0]
+          Width / Fill: 3.0 / gray
+        """
+
+        item_coords = self._canvas.coords(item_id)
+        item_width = self._canvas.itemcget(item_id, 'width')
+        item_fill = self._canvas.itemcget(item_id, 'fill')
+        pass
 
     def load(self, source: str) -> List[int]:
         # load svg
