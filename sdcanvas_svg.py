@@ -1,9 +1,10 @@
+import base64
 from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
-from typing import Literal, List, Tuple
+from typing import Literal, List, Optional, Tuple
 
-from svg import Circle, Element, SVG, Polyline
+from svg import Circle, Defs, Element, Image, Length, Pattern, Polyline, PreserveAspectRatio, Rect, SVG
 
 class SDCanvasSvgHandler:
     _canvas: Canvas
@@ -14,19 +15,27 @@ class SDCanvasSvgHandler:
     def save(
         self,
         item_ids: List[int],
-        bounds: Tuple[float, float, float, float]
+        bounds: Tuple[float, float, float, float],
+        bg_file: Optional[str]=None,
     ) -> None:
         x = bounds[0]
         y = bounds[1]
         w = bounds[2] - x
         h = bounds[3] - y
 
+        elements: List[Element] = []
+        if bg_file is not None:
+            img_b64 = self._img_to_base64(bg_file)
+            img = Image(id='tile', href=img_b64, x=0, y=0, width=64, height=64, preserveAspectRatio=PreserveAspectRatio('none'))
+            pattern = Pattern(id='background', width=64, height=64, elements=[img], patternUnits='userSpaceOnUse')
+            pattern_def = Defs(elements=[pattern])
+            bg_rect = Rect(width=Length(100, '%'), height=Length(100, '%'), fill='url(#background)')
+            elements += [pattern_def, bg_rect]
         ovals = (self._make_oval(id, -x, -y) for id in item_ids if self._get_item_type(id) == 'oval')
         lines = (self._make_line(id, -x, -y) for id in item_ids if self._get_item_type(id) == 'line')
-        elements: List[Element] = list(chain(ovals, lines))
-        svg = SVG(width=w, height=h, elements=elements)
+        elements += list(chain(ovals, lines))
 
-        # TODO: add background
+        svg = SVG(width=w, height=h, elements=elements)
 
         with open('test.svg', 'w', encoding='utf-8') as f:
             f.write(str(svg))
@@ -38,6 +47,11 @@ class SDCanvasSvgHandler:
                 return item_type
             case _:
                 raise TypeError(f'Invalid item type: {item_type}')
+
+    def _img_to_base64(self, img_path: str) -> str:
+        with open(img_path, "rb") as f:
+            img = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/png;base64,{img}"
 
     def _make_oval(self, item_id: int, x_offset: float, y_offset: float) -> Circle:
         """
