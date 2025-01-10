@@ -26,9 +26,10 @@ class SDCanvasSvgHandler:
         elements: List[Element] = list(chain(ovals, lines))
         svg = SVG(width=w, height=h, elements=elements)
 
-        # add background
-        # write to file
-        raise NotImplementedError()
+        # TODO: add background
+
+        with open('test.svg', 'w', encoding='utf-8') as f:
+            f.write(str(svg))
 
     def _get_item_type(self, item_id: int) -> Literal['oval'] | Literal['line']:
         item_type = self._canvas.type(item_id)
@@ -51,6 +52,7 @@ class SDCanvasSvgHandler:
         cx = (coords[0] + coords[2]) / 2 + x_offset
         cy = (coords[1] + coords[3]) / 2 + y_offset
 
+        # TODO: style element
         line_width = self._canvas.itemcget(item_id, 'width')
         color = self._canvas.itemcget(item_id, 'fill')
 
@@ -69,6 +71,7 @@ class SDCanvasSvgHandler:
             for i, v in enumerate(self._canvas.coords(item_id))
         )
 
+        # TODO: style element
         line_width = self._canvas.itemcget(item_id, 'width')
         color = self._canvas.itemcget(item_id, 'fill')
 
