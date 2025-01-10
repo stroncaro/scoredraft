@@ -1,3 +1,4 @@
+from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
 from typing import Literal, List, Tuple
@@ -20,8 +21,8 @@ class SDCanvasSvgHandler:
         w = bounds[2] - x
         h = bounds[3] - y
 
-        ovals = (self._make_oval(id, x, y) for id in item_ids if self._get_item_type(id) == 'oval')
-        lines = (self._make_line(id, x, y) for id in item_ids if self._get_item_type(id) == 'line')
+        ovals = (self._make_oval(id, -x, -y) for id in item_ids if self._get_item_type(id) == 'oval')
+        lines = (self._make_line(id, -x, -y) for id in item_ids if self._get_item_type(id) == 'line')
         elements: List[Element] = list(chain(ovals, lines))
         svg = SVG(width=w, height=h, elements=elements)
 
@@ -45,10 +46,15 @@ class SDCanvasSvgHandler:
           Width / Fill: 1.0 / gray
         """
 
-        item_coords = self._canvas.coords(item_id)
-        item_width = self._canvas.itemcget(item_id, 'width')
-        item_fill = self._canvas.itemcget(item_id, 'fill')
-        pass
+        coords = self._canvas.coords(item_id)
+        r = coords[2] - coords[0]
+        cx = (coords[0] + coords[2]) / 2 + x_offset
+        cy = (coords[1] + coords[3]) / 2 + y_offset
+
+        line_width = self._canvas.itemcget(item_id, 'width')
+        color = self._canvas.itemcget(item_id, 'fill')
+
+        return Circle(cx=cx, cy=cy, r=r)
 
     def _make_line(self, item_id: int, x_offset: float, y_offset: float) -> Polyline:
         """
@@ -58,10 +64,15 @@ class SDCanvasSvgHandler:
           Width / Fill: 3.0 / gray
         """
 
-        item_coords = self._canvas.coords(item_id)
-        item_width = self._canvas.itemcget(item_id, 'width')
-        item_fill = self._canvas.itemcget(item_id, 'fill')
-        pass
+        points: List[Decimal | float | int] = list(
+            v - (x_offset, y_offset)[i % 2]
+            for i, v in enumerate(self._canvas.coords(item_id))
+        )
+
+        line_width = self._canvas.itemcget(item_id, 'width')
+        color = self._canvas.itemcget(item_id, 'fill')
+
+        return Polyline(points=points)
 
     def load(self, source: str) -> List[int]:
         # load svg
