@@ -4,6 +4,7 @@ from typing import Tuple, List
 
 from PIL import Image
 
+from sdcanvas_svg import SDCanvasSvgHandler
 from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
 
 # TODO: refactor state handling and other components into encapsulated parts.
@@ -36,12 +37,15 @@ class SDCanvas(Canvas):
         )
 
         if self.cget('scrollregion'):
-            self._data_bounds = [int(s) for s in self.cget('scrollregion').split()]
+            self._data_bounds = [float(s) for s in self.cget('scrollregion').split()]
         else:
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
         tile = Image.open('backgrounds/paper5_1.png')
         self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
+
+
+        self._serializer = SDCanvasSvgHandler(self)
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -54,6 +58,7 @@ class SDCanvas(Canvas):
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
+        self.bind('s', lambda _: self._serializer.save('test.ps', self._data_bounds))
         self.focus_set()
 
 
