@@ -49,8 +49,7 @@ class SDCanvas(Canvas):
         tile = Image.open('backgrounds/paper5_1.png')
         self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
 
-
-        self._serializer = SDCanvasSvgHandler(self, SDCanvas.OVAL_STYLE, SDCanvas.LINE_STYLE)
+        self._svg = SDCanvasSvgHandler(self, SDCanvas.OVAL_STYLE, SDCanvas.LINE_STYLE)
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -63,10 +62,9 @@ class SDCanvas(Canvas):
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
-        self.bind('s', lambda _: self._serializer.save(self._items, self._data_bounds, 'backgrounds/paper5_1.png'))
-        self.bind('l', lambda _: self._serializer.load())
+        self.bind('s', lambda _: self._svg.save('test.svg', self._items, self._data_bounds, 'backgrounds/paper5_1.png'))
+        self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
-
 
     def xview(self, *args):
         self._tile_bg_handler.on_xview(*args)

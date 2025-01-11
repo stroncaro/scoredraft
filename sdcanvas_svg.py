@@ -2,14 +2,18 @@ import base64
 from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
-from typing import Dict, Literal, List, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple
 from xml.etree import ElementTree
 
 from svg import (
-    Circle, Defs, Element, Image, Length, Pattern, Polyline, PreserveAspectRatio, Rect, Style, SVG
+    Circle, Defs, Element, Image, Length, Pattern,
+    Polyline, PreserveAspectRatio, Rect, Style, SVG
 )
 
+# TODO: instead of receiving style, receive drawing methods?
+
 class SDCanvasSvgHandler:
+    """Handle saving and loading to svg files"""
     STYLE = "".join("""
         polyline {
             stroke: gray;
@@ -38,6 +42,7 @@ class SDCanvasSvgHandler:
 
     def save(
         self,
+        file: str,
         item_ids: List[int],
         bounds: Tuple[float, float, float, float],
         bg_file: Optional[str]=None,
@@ -51,7 +56,7 @@ class SDCanvasSvgHandler:
         elements: List[Element] = [def_element]
 
         if bg_file is not None:
-            self._add_bg(bg_file, def_element, elements)
+            self._save_bg(bg_file, def_element, elements)
 
         ovals = (self._save_oval(i, -x, -y) for i in item_ids if self._get_item_type(i) == 'oval')
         lines = (self._save_line(i, -x, -y) for i in item_ids if self._get_item_type(i) == 'line')
@@ -59,10 +64,18 @@ class SDCanvasSvgHandler:
 
         svg = SVG(width=w, height=h, elements=elements)
 
-        with open('test.svg', 'w', encoding='utf-8') as f:
+        with open(file, 'w', encoding='utf-8') as f:
             f.write(str(svg))
 
-    def _add_bg(self, bg_file: str, defs: Defs, elems: List[Element]) -> None:
+    def load(self, file: str) -> List[int]:
+        svg = ElementTree.parse(file).getroot()
+        ns = {"svg": "http://www.w3.org/2000/svg"}
+        ovals = (self._load_oval(e) for e in svg.findall('.//svg:circle', ns))
+        lines = (self._load_line(e) for e in svg.findall('.//svg:polyline', ns))
+        item_ids = list(chain(ovals, lines))
+        return item_ids
+
+    def _save_bg(self, bg_file: str, defs: Defs, elems: List[Element]) -> None:
         img_b64 = self._img_to_base64(bg_file)
         img = Image(
             id='tile', href=img_b64, x=0, y=0, width=64, height=64,
@@ -105,14 +118,6 @@ class SDCanvasSvgHandler:
             for i, v in enumerate(self._canvas.coords(item_id))
         )
         return Polyline(points=points)
-
-    def load(self, source: str='test.svg') -> List[int]:
-        svg = ElementTree.parse(source).getroot()
-        ns = {"svg": "http://www.w3.org/2000/svg"}
-        ovals = (self._load_oval(e) for e in svg.findall('.//svg:circle', ns))
-        lines = (self._load_line(e) for e in svg.findall('.//svg:polyline', ns))
-        item_ids = list(chain(ovals, lines))
-        return item_ids
 
     def _load_oval(self, e: ElementTree.Element) -> int:
         cx, cy, r = (float(e.attrib[k]) for k in ('cx', 'cy', 'r'))
