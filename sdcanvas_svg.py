@@ -94,7 +94,7 @@ class SDCanvasSvgHandler:
 
     def _save_oval(self, item_id: int, x_offset: float, y_offset: float) -> Circle:
         coords = self._canvas.coords(item_id)
-        r = coords[2] - coords[0] - 1
+        r = (coords[2] - coords[0]) / 2
         cx = (coords[0] + coords[2]) / 2 + x_offset
         cy = (coords[1] + coords[3]) / 2 + y_offset
         return Circle(cx=cx, cy=cy, r=r)
