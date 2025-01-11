@@ -3,7 +3,7 @@ from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
 from typing import Literal, List, Optional, Tuple
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 
 from svg import (
     Circle, Defs, Element, Image, Length, Pattern, Polyline, PreserveAspectRatio, Rect, Style, SVG
@@ -98,25 +98,21 @@ class SDCanvasSvgHandler:
         return Polyline(points=points)
 
     def load(self, source: str='test.svg') -> List[int]:
-        svg = ET.parse(source).getroot()
+        svg = ElementTree.parse(source).getroot()
         ns = {"svg": "http://www.w3.org/2000/svg"}
-
-        circles = svg.findall('.//svg:circle', ns)
-        polylines = svg.findall('.//svg:polyline', ns)
-
-        item_ids = []
-        for circle in circles:
-            cx, cy, r = (float(circle.attrib[k]) for k in ('cx', 'cy', 'r'))
-            x1, y1, x2, y2 = cx - r, cy - r, cx + r, cy + r
-            item_id = self._canvas.create_oval(x1, y1, x2, y2)
-            item_ids.append(item_id)
-
-        for pl in polylines:
-            points = (float(p) for p in pl.attrib['points'].split())
-            item_id = self._canvas.create_line(*points)
-            item_ids.append(item_id)
-
+        ovals = (self._load_oval(e) for e in svg.findall('.//svg:circle', ns))
+        lines = (self._load_line(e) for e in svg.findall('.//svg:polyline', ns))
+        item_ids = list(chain(ovals, lines))
         return item_ids
+
+    def _load_oval(self, e: ElementTree.Element) -> int:
+        cx, cy, r = (float(e.attrib[k]) for k in ('cx', 'cy', 'r'))
+        x1, y1, x2, y2 = cx - r, cy - r, cx + r, cy + r
+        return self._canvas.create_oval(x1, y1, x2, y2)
+
+    def _load_line(self, e: ElementTree.Element) -> int:
+        points = (float(p) for p in e.attrib['points'].split())
+        return self._canvas.create_line(*points)
 
 if __name__ == '__main__':
     c = Canvas(None)
