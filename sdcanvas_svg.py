@@ -113,8 +113,3 @@ class SDCanvasSvgHandler:
     def _load_line(self, e: ElementTree.Element) -> int:
         points = (float(p) for p in e.attrib['points'].split())
         return self._canvas.create_line(*points)
-
-if __name__ == '__main__':
-    c = Canvas(None)
-    h = SDCanvasSvgHandler(c)
-    h.load()
