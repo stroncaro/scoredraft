@@ -2,7 +2,7 @@ import base64
 from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
-from typing import Literal, List, Optional, Tuple
+from typing import Dict, Literal, List, Optional, Tuple
 from xml.etree import ElementTree
 
 from svg import (
@@ -23,9 +23,18 @@ class SDCanvasSvgHandler:
     """.split())
 
     _canvas: Canvas
+    _oval_style: Dict[str, str]
+    _line_style: Dict[str, str]
 
-    def __init__(self, canvas: Canvas):
+    def __init__(
+        self,
+        canvas: Canvas,
+        oval_style: Optional[Dict[str, str]]=None,
+        line_style: Optional[Dict[str, str]]=None,
+    ) -> None:
         self._canvas = canvas
+        self._oval_style = oval_style or {}
+        self._line_style = line_style or {}
 
     def save(
         self,
@@ -108,8 +117,8 @@ class SDCanvasSvgHandler:
     def _load_oval(self, e: ElementTree.Element) -> int:
         cx, cy, r = (float(e.attrib[k]) for k in ('cx', 'cy', 'r'))
         x1, y1, x2, y2 = cx - r, cy - r, cx + r, cy + r
-        return self._canvas.create_oval(x1, y1, x2, y2)
+        return self._canvas.create_oval(x1, y1, x2, y2, **self._oval_style) # type: ignore
 
     def _load_line(self, e: ElementTree.Element) -> int:
         points = (float(p) for p in e.attrib['points'].split())
-        return self._canvas.create_line(*points)
+        return self._canvas.create_line(*points, **self._line_style) # type: ignore
