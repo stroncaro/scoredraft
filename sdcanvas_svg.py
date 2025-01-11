@@ -47,10 +47,7 @@ class SDCanvasSvgHandler:
         self._oval_style = oval_style or {}
         self._line_style = line_style or {}
 
-    def save(
-        self,
-        file: str,
-    ) -> None:
+    def save(self, file: str) -> None:
         x = self._canvas_bounds[0]
         y = self._canvas_bounds[1]
         w = self._canvas_bounds[2] - x
