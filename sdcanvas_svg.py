@@ -2,7 +2,7 @@ import base64
 from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional
 from xml.etree import ElementTree
 
 from svg import (
@@ -11,6 +11,7 @@ from svg import (
 )
 
 # TODO: instead of receiving style, receive drawing methods?
+# TODO: save in git friendly svg file
 
 class SDCanvasSvgHandler:
     """Handle saving and loading to svg files"""
@@ -27,39 +28,43 @@ class SDCanvasSvgHandler:
     """.split())
 
     _canvas: Canvas
+    _canvas_items: List[int]
+    _canvas_bounds: List[float]
+    _bg_file: Optional[str]
     _oval_style: Dict[str, str]
     _line_style: Dict[str, str]
 
     def __init__(
-        self,
-        canvas: Canvas,
+        self, canvas: Canvas, bounds: List[float], items: List[int], *,
+        bg_file: Optional[str]=None,
         oval_style: Optional[Dict[str, str]]=None,
         line_style: Optional[Dict[str, str]]=None,
     ) -> None:
         self._canvas = canvas
+        self._canvas_items = items
+        self._canvas_bounds = bounds
+        self._bg_file = bg_file
         self._oval_style = oval_style or {}
         self._line_style = line_style or {}
 
     def save(
         self,
         file: str,
-        item_ids: List[int],
-        bounds: Tuple[float, float, float, float],
-        bg_file: Optional[str]=None,
     ) -> None:
-        x = bounds[0]
-        y = bounds[1]
-        w = bounds[2] - x
-        h = bounds[3] - y
+        x = self._canvas_bounds[0]
+        y = self._canvas_bounds[1]
+        w = self._canvas_bounds[2] - x
+        h = self._canvas_bounds[3] - y
 
         def_element = Defs(elements=[Style(text=self.STYLE)])
         elements: List[Element] = [def_element]
 
-        if bg_file is not None:
-            self._save_bg(bg_file, def_element, elements)
+        if self._bg_file is not None:
+            self._save_bg(self._bg_file, def_element, elements)
 
-        ovals = (self._save_oval(i, -x, -y) for i in item_ids if self._get_item_type(i) == 'oval')
-        lines = (self._save_line(i, -x, -y) for i in item_ids if self._get_item_type(i) == 'line')
+        items = self._canvas_items
+        ovals = (self._save_oval(i, -x, -y) for i in items if self._get_item_type(i) == 'oval')
+        lines = (self._save_line(i, -x, -y) for i in items if self._get_item_type(i) == 'line')
         elements += list(chain(ovals, lines))
 
         svg = SVG(width=w, height=h, elements=elements)

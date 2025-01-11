@@ -46,10 +46,14 @@ class SDCanvas(Canvas):
         else:
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
-        tile = Image.open('backgrounds/paper5_1.png')
+        bg_file = 'backgrounds/paper5_1.png'
+        tile = Image.open(bg_file)
         self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
 
-        self._svg = SDCanvasSvgHandler(self, SDCanvas.OVAL_STYLE, SDCanvas.LINE_STYLE)
+        self._svg = SDCanvasSvgHandler(
+            self, self._data_bounds, self._items,
+            bg_file=bg_file, oval_style=SDCanvas.OVAL_STYLE, line_style=SDCanvas.LINE_STYLE
+        )
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -62,7 +66,7 @@ class SDCanvas(Canvas):
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
-        self.bind('s', lambda _: self._svg.save('test.svg', self._items, self._data_bounds, 'backgrounds/paper5_1.png'))
+        self.bind('s', lambda _: self._svg.save('test.svg'))
         self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
 
