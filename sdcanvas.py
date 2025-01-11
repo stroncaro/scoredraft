@@ -59,6 +59,7 @@ class SDCanvas(Canvas):
 
         self.bind('z', self._undo)
         self.bind('s', lambda _: self._serializer.save(self._items, self._data_bounds, 'backgrounds/paper5_1.png'))
+        self.bind('l', lambda _: self._serializer.load())
         self.focus_set()
 
 
