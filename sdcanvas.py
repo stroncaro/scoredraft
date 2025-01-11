@@ -14,11 +14,16 @@ from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
 
 class SDCanvas(Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
-    ITEM_STYLE = {
-        'width': 3,
+    LINE_STYLE = {
+        'width': '3',
         'fill': 'gray',
         'joinstyle': 'round',
         'capstyle': 'round',
+    }
+    OVAL_WIDTH = 2
+    OVAL_STYLE = {
+        'fill': 'gray',
+        'outline': 'gray',
     }
 
     def __init__(self, parent, **kwargs) -> None:
@@ -45,7 +50,7 @@ class SDCanvas(Canvas):
         self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
 
 
-        self._serializer = SDCanvasSvgHandler(self)
+        self._serializer = SDCanvasSvgHandler(self, SDCanvas.OVAL_STYLE, SDCanvas.LINE_STYLE)
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -81,7 +86,7 @@ class SDCanvas(Canvas):
         xy = self._translate_xy(event)
         match self._state:
             case SDCanvas.STATE.DRAW:
-                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.ITEM_STYLE)
+                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.LINE_STYLE)
                 self._curr_item = line_id
                 self._state = SDCanvas.STATE.LINE
                 self._update_data_bounds(*self._curr_xy)
@@ -95,13 +100,9 @@ class SDCanvas(Canvas):
     def _draw_end(self, event):
         match self._state:
             case SDCanvas.STATE.DRAW:
-                x, y, w = *self._translate_xy(event), SDCanvas.ITEM_STYLE['width'] - 1
+                x, y, w = *self._translate_xy(event), SDCanvas.OVAL_WIDTH
                 x1, y1, x2, y2 = x - w, y - w, x + w, y + w
-                point_id = self.create_oval(
-                    x1, y1, x2, y2,
-                    fill=SDCanvas.ITEM_STYLE['fill'],
-                    outline=SDCanvas.ITEM_STYLE['fill'],
-                )
+                point_id = self.create_oval(x1, y1, x2, y2, **SDCanvas.OVAL_STYLE)
                 self._items.append(point_id)
                 self._update_data_bounds(x1, y1)
                 self._update_data_bounds(x2, y2)
