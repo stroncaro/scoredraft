@@ -116,7 +116,7 @@ class SDCanvasSvgHandler:
 
     def _save_line(self, item_id: int, x_offset: float, y_offset: float) -> Polyline:
         points: List[Decimal | float | int] = list(
-            v - (x_offset, y_offset)[i % 2]
+            v + (x_offset, y_offset)[i % 2]
             for i, v in enumerate(self._canvas.coords(item_id))
         )
         return Polyline(points=points)
