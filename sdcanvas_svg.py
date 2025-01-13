@@ -2,9 +2,10 @@ import base64
 from decimal import Decimal
 from itertools import chain
 from tkinter import Canvas
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Tuple
 from xml.etree import ElementTree
 
+from PIL import Image as PILImage
 from svg import (
     Circle, Defs, Element, Image, Length, Pattern,
     Polyline, PreserveAspectRatio, Rect, Style, SVG
@@ -31,6 +32,7 @@ class SDCanvasSvgHandler:
     _canvas_items: List[int]
     _canvas_bounds: List[float]
     _bg_file: Optional[str]
+    _bg_size: Optional[Tuple[int, int]]
     _oval_style: Dict[str, str]
     _line_style: Dict[str, str]
 
@@ -44,14 +46,12 @@ class SDCanvasSvgHandler:
         self._canvas_items = items
         self._canvas_bounds = bounds
         self._bg_file = bg_file
+        self._bg_size = PILImage.open(bg_file).size if bg_file is not None else None
         self._oval_style = oval_style or {}
         self._line_style = line_style or {}
 
     def save(self, file: str) -> None:
-        x = self._canvas_bounds[0]
-        y = self._canvas_bounds[1]
-        w = self._canvas_bounds[2] - x
-        h = self._canvas_bounds[3] - y
+        x, y, w, h = self._get_xywh()
 
         def_element = Defs(elements=[Style(text=self.STYLE)])
         elements: List[Element] = [def_element]
@@ -60,8 +60,8 @@ class SDCanvasSvgHandler:
             self._save_bg(self._bg_file, def_element, elements)
 
         items = self._canvas_items
-        ovals = (self._save_oval(i, -x, -y) for i in items if self._get_item_type(i) == 'oval')
-        lines = (self._save_line(i, -x, -y) for i in items if self._get_item_type(i) == 'line')
+        ovals = (self._save_oval(i, x, y) for i in items if self._get_item_type(i) == 'oval')
+        lines = (self._save_line(i, x, y) for i in items if self._get_item_type(i) == 'line')
         elements += list(chain(ovals, lines))
 
         svg = SVG(width=w, height=h, elements=elements)
@@ -76,6 +76,23 @@ class SDCanvasSvgHandler:
         lines = (self._load_line(e) for e in svg.findall('.//svg:polyline', ns))
         item_ids = list(chain(ovals, lines))
         return item_ids
+
+    def _get_xywh(self) -> Tuple[float, float, float, float]:
+        # unpack
+        x = self._canvas_bounds[0]
+        y = self._canvas_bounds[1]
+        w = self._canvas_bounds[2] - x
+        h = self._canvas_bounds[3] - y
+
+        # adjust offset for bg_size
+        bg_x, bg_y = self._bg_size or (0, 0)
+        if bg_x > 0:
+            x = (x // bg_x) * -bg_x
+        if bg_y > 0:
+            y = (y // bg_y) * -bg_y
+
+        return x, y, w, h
+
 
     def _save_bg(self, bg_file: str, defs: Defs, elems: List[Element]) -> None:
         img_b64 = self._img_to_base64(bg_file)
