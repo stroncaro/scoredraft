@@ -4,6 +4,7 @@ from typing import Tuple, List
 
 from PIL import Image
 
+from sdcanvas_svg import SDCanvasSvgHandler
 from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
 
 # TODO: refactor state handling and other components into encapsulated parts.
@@ -13,11 +14,16 @@ from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
 
 class SDCanvas(Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
-    ITEM_STYLE = {
-        'width': 3,
+    LINE_STYLE = {
+        'width': '3',
         'fill': 'gray',
         'joinstyle': 'round',
         'capstyle': 'round',
+    }
+    OVAL_WIDTH = 2
+    OVAL_STYLE = {
+        'fill': 'gray',
+        'outline': 'gray',
     }
 
     def __init__(self, parent, **kwargs) -> None:
@@ -36,12 +42,18 @@ class SDCanvas(Canvas):
         )
 
         if self.cget('scrollregion'):
-            self._data_bounds = [int(s) for s in self.cget('scrollregion').split()]
+            self._data_bounds = [float(s) for s in self.cget('scrollregion').split()]
         else:
             self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
-        tile = Image.open('backgrounds/paper5_1.png')
+        bg_file = 'backgrounds/paper5_1.png'
+        tile = Image.open(bg_file)
         self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
+
+        self._svg = SDCanvasSvgHandler(
+            self, self._data_bounds, self._items,
+            bg_file=bg_file, oval_style=SDCanvas.OVAL_STYLE, line_style=SDCanvas.LINE_STYLE
+        )
 
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
@@ -54,8 +66,9 @@ class SDCanvas(Canvas):
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
         self.bind('z', self._undo)
+        self.bind('s', lambda _: self._svg.save('test.svg'))
+        self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
-
 
     def xview(self, *args):
         self._tile_bg_handler.on_xview(*args)
@@ -75,7 +88,7 @@ class SDCanvas(Canvas):
         xy = self._translate_xy(event)
         match self._state:
             case SDCanvas.STATE.DRAW:
-                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.ITEM_STYLE)
+                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.LINE_STYLE)
                 self._curr_item = line_id
                 self._state = SDCanvas.STATE.LINE
                 self._update_data_bounds(*self._curr_xy)
@@ -89,13 +102,9 @@ class SDCanvas(Canvas):
     def _draw_end(self, event):
         match self._state:
             case SDCanvas.STATE.DRAW:
-                x, y, w = *self._translate_xy(event), SDCanvas.ITEM_STYLE['width'] - 1
+                x, y, w = *self._translate_xy(event), SDCanvas.OVAL_WIDTH
                 x1, y1, x2, y2 = x - w, y - w, x + w, y + w
-                point_id = self.create_oval(
-                    x1, y1, x2, y2,
-                    fill=SDCanvas.ITEM_STYLE['fill'],
-                    outline=SDCanvas.ITEM_STYLE['fill'],
-                )
+                point_id = self.create_oval(x1, y1, x2, y2, **SDCanvas.OVAL_STYLE)
                 self._items.append(point_id)
                 self._update_data_bounds(x1, y1)
                 self._update_data_bounds(x2, y2)
