@@ -55,9 +55,7 @@ class SDCanvasSvgHandler:
 
         def_element = Defs(elements=[Style(text=self.STYLE)])
         elements: List[Element] = [def_element]
-
-        if self._bg_file is not None:
-            self._save_bg(self._bg_file, def_element, elements)
+        self._save_bg(def_element, elements)
 
         items = self._canvas_items
         ovals = (self._save_oval(i, x, y) for i in items if self._get_item_type(i) == 'oval')
@@ -93,11 +91,13 @@ class SDCanvasSvgHandler:
 
         return x, y, w, h
 
+    def _save_bg(self, defs: Defs, elems: List[Element]) -> None:
+        if self._bg_file is None or self._bg_size is None:
+            return
 
-    def _save_bg(self, bg_file: str, defs: Defs, elems: List[Element]) -> None:
-        img_b64 = self._img_to_base64(bg_file)
+        img_b64 = self._img_to_base64(self._bg_file)
         img = Image(
-            id='tile', href=img_b64, x=0, y=0, width=64, height=64,
+            id='tile', href=img_b64, x=0, y=0, width=self._bg_size[0], height=self._bg_size[1],
             preserveAspectRatio=PreserveAspectRatio('none')
         )
         pattern = Pattern(
