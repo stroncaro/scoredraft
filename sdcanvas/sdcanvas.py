@@ -7,15 +7,16 @@ from PIL import Image
 from sdcanvas._bg import BGMixin
 from sdcanvas._svg import SVGMixin
 
-from . import _styles as STYLES
-from ._draw import DrawMixin
+from sdcanvas import _styles as STYLES
+from sdcanvas._area import AreaMixin
+from sdcanvas._draw import DrawMixin
 
 # TODO: refactor state handling and other components into encapsulated parts.
 # Tkinter virtual events can help with decoupling, but a complete rework is needed
 # Current implementation is fine for prototyping, but its important to deal with this debt
 # before expanding the canvas functionality, otherwise the code will become unwieldly fast
 
-class SDCanvas(DrawMixin, Canvas):
+class SDCanvas(AreaMixin, DrawMixin, Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
 
     def __init__(self, parent, **kwargs) -> None:
