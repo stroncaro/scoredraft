@@ -4,12 +4,8 @@ from typing import Tuple
 
 from PIL import Image
 
-from sdcanvas._bg import BGMixin
-from sdcanvas._svg import SVGMixin
-
-from sdcanvas import _styles as STYLES
-from sdcanvas._area import AreaMixin
-from sdcanvas._draw import DrawMixin
+from sdcanvas import STYLES
+from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin
 
 # TODO: refactor state handling and other components into encapsulated parts.
 # Tkinter virtual events can help with decoupling, but a complete rework is needed

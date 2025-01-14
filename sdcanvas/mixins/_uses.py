@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from tkinter import Canvas
-    from sdcanvas._area import AreaMixin
+    from . import AreaMixin
 
 
 class UseCanvas:

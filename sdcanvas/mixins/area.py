@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from itertools import chain, islice
 
-from sdcanvas._uses import UseCanvas
+from ._uses import UseCanvas
 
 
 class AreaMixin(UseCanvas):

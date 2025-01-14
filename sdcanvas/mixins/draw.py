@@ -4,8 +4,8 @@ Draw methods for the SDCanvas class.
 
 from typing import List
 
-from sdcanvas import _styles as STYLES
-from sdcanvas._uses import UseArea, UseCanvas
+from sdcanvas import STYLES
+from ._uses import UseArea, UseCanvas
 
 class DrawMixin(UseArea, UseCanvas):
     """Collection of draw methods for the SDCanvas class."""
