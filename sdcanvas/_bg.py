@@ -3,7 +3,7 @@ from typing import Literal, Optional, Tuple
 
 from PIL import Image, ImageTk
 
-class SDCanvasTileBackgroundHandler:
+class BGMixin:
     """Adds a tiling background to an infinite canvas. Requires hooking the provided methods."""
     TAG = 'background'
 

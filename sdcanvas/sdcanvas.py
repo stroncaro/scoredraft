@@ -4,15 +4,16 @@ from typing import Tuple, List
 
 from PIL import Image
 
-from sdcanvas_svg import SDCanvasSvgHandler
-from sdcanvas_tile_bg import SDCanvasTileBackgroundHandler
+from ._bg import BGMixin
+from ._draw import DrawMixin
+from ._svg import SVGMixin
 
 # TODO: refactor state handling and other components into encapsulated parts.
 # Tkinter virtual events can help with decoupling, but a complete rework is needed
 # Current implementation is fine for prototyping, but its important to deal with this debt
 # before expanding the canvas functionality, otherwise the code will become unwieldly fast
 
-class SDCanvas(Canvas):
+class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
     LINE_STYLE = {
         'width': '3',

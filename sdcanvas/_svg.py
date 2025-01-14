@@ -14,7 +14,7 @@ from svg import (
 # TODO: instead of receiving style, receive drawing methods?
 # TODO: save in git friendly svg file
 
-class SDCanvasSvgHandler:
+class SVGMixin:
     """Handle saving and loading to svg files"""
     STYLE = "".join("""
         polyline {
