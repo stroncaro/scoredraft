@@ -1,39 +1,28 @@
 from enum import Enum
 from tkinter import Canvas
-from typing import Tuple, List
+from typing import Tuple
 
 from PIL import Image
 
-from ._bg import BGMixin
+from sdcanvas._bg import BGMixin
+from sdcanvas._svg import SVGMixin
+
+from . import _styles as STYLES
 from ._draw import DrawMixin
-from ._svg import SVGMixin
 
 # TODO: refactor state handling and other components into encapsulated parts.
 # Tkinter virtual events can help with decoupling, but a complete rework is needed
 # Current implementation is fine for prototyping, but its important to deal with this debt
 # before expanding the canvas functionality, otherwise the code will become unwieldly fast
 
-class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
+class SDCanvas(DrawMixin, Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
-    LINE_STYLE = {
-        'width': '3',
-        'fill': 'gray',
-        'joinstyle': 'round',
-        'capstyle': 'round',
-    }
-    OVAL_WIDTH = 2
-    OVAL_STYLE = {
-        'fill': 'gray',
-        'outline': 'gray',
-    }
 
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
         self._state: SDCanvas.STATE = SDCanvas.STATE.IDLE
         self._curr_xy: Tuple[int, int] = (0, 0)
-        self._curr_item: int = 0
-        self._items: List[int] = []
 
         self.configure(
             # needed for drag scrolling to work
@@ -42,18 +31,18 @@ class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
             confine=False,
         )
 
-        if self.cget('scrollregion'):
-            self._data_bounds = [float(s) for s in self.cget('scrollregion').split()]
-        else:
-            self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
+        #if self.cget('scrollregion'):
+        #    self._data_bounds = [float(s) for s in self.cget('scrollregion').split()]
+        #else:
+        #    self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
 
         bg_file = 'backgrounds/paper5_1.png'
         tile = Image.open(bg_file)
-        self._tile_bg_handler = SDCanvasTileBackgroundHandler(self, tile)
+        self._tile_bg_handler = BGMixin(self, tile)
 
-        self._svg = SDCanvasSvgHandler(
-            self, self._data_bounds, self._items,
-            bg_file=bg_file, oval_style=SDCanvas.OVAL_STYLE, line_style=SDCanvas.LINE_STYLE
+        self._svg = SVGMixin(
+            self, self.active_area, self.items,
+            bg_file=bg_file, oval_style=STYLES.OVAL, line_style=STYLES.LINE
         )
 
         self.bind('<ButtonPress-1>', self._draw_init)
@@ -66,7 +55,7 @@ class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
 
         self.bind('<Configure>', self._tile_bg_handler.on_configure)
 
-        self.bind('z', self._undo)
+        self.bind('z', lambda _: self.remove_last_item())
         self.bind('s', lambda _: self._svg.save('test.svg'))
         self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
@@ -89,28 +78,20 @@ class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
         xy = self._translate_xy(event)
         match self._state:
             case SDCanvas.STATE.DRAW:
-                line_id = self.create_line(*self._curr_xy, *xy, **SDCanvas.LINE_STYLE)
-                self._curr_item = line_id
+                self.start_line(*self._curr_xy, *xy)
                 self._state = SDCanvas.STATE.LINE
-                self._update_data_bounds(*self._curr_xy)
             case SDCanvas.STATE.LINE:
-                self.coords(self._curr_item, *self.coords(self._curr_item), *xy)
+                self.extend_line(*xy)
             case _:
                 return
         self._curr_xy = xy
-        self._update_data_bounds(*self._curr_xy)
 
     def _draw_end(self, event):
         match self._state:
             case SDCanvas.STATE.DRAW:
-                x, y, w = *self._translate_xy(event), SDCanvas.OVAL_WIDTH
-                x1, y1, x2, y2 = x - w, y - w, x + w, y + w
-                point_id = self.create_oval(x1, y1, x2, y2, **SDCanvas.OVAL_STYLE)
-                self._items.append(point_id)
-                self._update_data_bounds(x1, y1)
-                self._update_data_bounds(x2, y2)
+                self.draw_point(*self._translate_xy(event))
             case SDCanvas.STATE.LINE:
-                self._items.append(self._curr_item)
+                self.end_line()
             case _:
                 return
         self._state = SDCanvas.STATE.IDLE
@@ -144,33 +125,3 @@ class SDCanvas(DrawMixin, BGMixin, SVGMixin, Canvas):
 
     def _translate_xy(self, event):
         return (int(self.canvasx(event.x)), int(self.canvasy(event.y)))
-
-    def _undo(self, _):
-        try:
-            self.delete(self._items.pop())
-        except IndexError:
-            pass
-
-    def _update_data_bounds(self, x, y):
-        updated = False
-        if x < self._data_bounds[0]:
-            self._data_bounds[0] = x
-            updated = True
-        if x > self._data_bounds[2]:
-            self._data_bounds[2] = x
-            updated = True
-        if y < self._data_bounds[1]:
-            self._data_bounds[1] = y
-            updated = True
-        if y > self._data_bounds[3]:
-            self._data_bounds[3] = y
-            updated = True
-        if not updated:
-            return
-
-        new = tuple(n for n in self._data_bounds)
-        if self.cget('scrollregion'):
-            old = tuple(int(n) for n in self.cget('scrollregion').split())
-            new = min(old[0], new[0]), min(old[1], new[1]), max(old[2], new[2]), max(old[3], new[3])
-
-        self.config(scrollregion=new)

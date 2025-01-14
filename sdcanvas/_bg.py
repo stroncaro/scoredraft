@@ -77,14 +77,14 @@ class BGMixin:
         self._view_pos = self._view_pos[0], val
 
     @property
-    def _scrollregion_bounds_x(self) -> Tuple[int, int]:
+    def _scrollregion_bounds_x(self) -> Tuple[float, float]:
         sr = self._canvas.cget('scrollregion').split()
-        return int(sr[0]), int(sr[2])
+        return float(sr[0]), float(sr[2])
 
     @property
-    def _scrollregion_bounds_y(self) -> Tuple[int, int]:
+    def _scrollregion_bounds_y(self) -> Tuple[float, float]:
         sr = self._canvas.cget('scrollregion').split()
-        return int(sr[1]), int(sr[3])
+        return float(sr[1]), float(sr[3])
 
     def _resize_background(self, w, h) -> None:
         if w <= self._bg_w and h <= self._bg_h:
@@ -123,11 +123,11 @@ class BGMixin:
 
         # Calculate new position
         if method == 'scroll':
-            # Ignore mypy error, what is guaranteed to be 'units' or 'pages' if method is 'scroll'
+            # Ignore mypy error, `what` is guaranteed to be 'units' or 'pages' if method is 'scroll'
             pos += int(n * self._get_scroll_unit(axis, what)) # type: ignore
         else:
             v1, v2 = self._scrollregion_bounds_x if axis == 'x' else self._scrollregion_bounds_y
-            pos = int((v2 - v1) * n) + v1
+            pos = int((v2 - v1) * n + v1)
 
         # Update axis position and background
         bg_x, bg_y = self._canvas.coords(self.TAG)
