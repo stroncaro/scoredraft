@@ -5,14 +5,14 @@ from typing import Tuple
 from PIL import Image
 
 from sdcanvas import STYLES
-from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin
+from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 
 # TODO: refactor state handling and other components into encapsulated parts.
 # Tkinter virtual events can help with decoupling, but a complete rework is needed
 # Current implementation is fine for prototyping, but its important to deal with this debt
 # before expanding the canvas functionality, otherwise the code will become unwieldly fast
 
-class SDCanvas(AreaMixin, DrawMixin, Canvas):
+class SDCanvas(AreaMixin, DrawMixin, ViewMixin, Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
 
     def __init__(self, parent, **kwargs) -> None:
@@ -57,13 +57,13 @@ class SDCanvas(AreaMixin, DrawMixin, Canvas):
         self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
 
-    def xview(self, *args):
-        self._tile_bg_handler.on_xview(*args)
-        return super().xview(*args)
+    #def xview(self, *args):
+    #    self._tile_bg_handler.on_xview(*args)
+    #    return super().xview(*args)
 
-    def yview(self, *args):
-        self._tile_bg_handler.on_yview(*args)
-        return super().yview(*args)
+    #def yview(self, *args):
+    #    self._tile_bg_handler.on_yview(*args)
+    #    return super().yview(*args)
 
     def _draw_init(self, event):
         if self._state != SDCanvas.STATE.IDLE:
