@@ -1,155 +1,135 @@
-from tkinter import Canvas
-from typing import Literal, Optional, Tuple
+from typing import Optional
+import tkinter as tk
 
-from PIL import Image, ImageTk
+import PIL.Image
+from PIL import UnidentifiedImageError
+from PIL.Image import Image as PILImage
+from PIL.ImageTk import PhotoImage as PILPhotoImage
+from PIL.ImageFile import ImageFile as PILImageFile
 
-class BGMixin:
+from sdcanvas.mixins.view import ViewMixin
+
+class BGMixin(ViewMixin, tk.Canvas):
     """Adds a tiling background to an infinite canvas. Requires hooking the provided methods."""
     TAG = 'background'
 
-    _canvas: Canvas
-    _tile: Image.Image
-    _bg: Image.Image
-    _imgtk: ImageTk.PhotoImage
-    _view_pos: Tuple[int, int]
+    _configure_bind_id: str | None = None
+    _tile: Optional[PILImageFile] = None
+    _bg_img: Optional[PILImage] = None
+    _bg_photoimg: Optional[PILPhotoImage] = None
 
-    def __init__(self, canvas: Canvas, tile: Image.Image, initial_position: Tuple[int, int]=(0, 0)):
-        self._canvas = canvas
+    @property
+    def has_background(self):
+        """Return True if the background is active."""
+        return self._tile is not None
+
+    @property
+    def background_tile(self) -> str | None:
+        """Returns the filename of the img used as background tile, or None if not set."""
+        return str(self._tile.filename) if self._tile is not None else None
+
+    def set_background_tile(self, file: str):
+        """Add a background to the canvas from a tiling image."""
+
+        # Attempt to load image
+        try:
+            tile = PIL.Image.open(file)
+        except (FileNotFoundError, OSError, UnidentifiedImageError, ValueError):
+            print("Loading background image failed. Ignoring.")
+            return
+
+        # Clear existing background
+        self.clear_background()
+
+        # Create new background
         self._tile = tile
-        self._view_pos = initial_position
-        self._bg = self._tile
-        self._imgtk = ImageTk.PhotoImage(self._tile)
-        self._canvas.create_image(*self._view_pos, image=self._imgtk, anchor='nw', tags=self.TAG)
-        self._resize_background(self._view_w, self._view_h)
+        self._configure_bind_id = self.bind('<Configure>', self._on_configure, add=True)
+        self.create_image(*self.view_position, image=None, anchor='nw', tags=self.TAG)
+        self._resize_background(self.view_w, self.view_h)
 
-    def on_xview(self, *args):
-        """Hook for canvas xview method. Updates background to be into view"""
+    def clear_background(self) -> None:
+        """Remove the background from the canvas."""
+        if self._configure_bind_id is not None:
+            self.unbind('<Configure>', self._configure_bind_id)
+            self._configure_bind_id = None
+
+        self._tile = None
+        self._bg_img = None
+        self._bg_photoimg = None
+        self.delete(self.TAG)
+
+    def xview(self, *args):
+        """Update background to be into view"""
+        out = super().xview(*args)
         if len(args) >= 2:
-            self._scroll_background('x', *args)
+            self._scroll_background()
+        return out
 
-    def on_yview(self, *args):
-        """Hook for canvas yview method. Updates background to be into view"""
+    def yview(self, *args):
+        """Update background to be into view"""
+        out = super().yview(*args)
         if len(args) >= 2:
-            self._scroll_background('y', *args)
+            self._scroll_background()
+        return out
 
-    def on_configure(self, event):
+    def _on_configure(self, event):
         """Hook for canvas configure event. Updates background to fill window"""
         self._resize_background(event.width, event.height)
 
     @property
-    def _tile_w(self) -> int:
-        return self._tile.size[0]
+    def tile_w(self) -> int:
+        """Width of the tile image used for the background if it exists, 0 otherwise."""
+        return self._tile.size[0] if self._tile is not None else 0
 
     @property
-    def _tile_h(self) -> int:
-        return self._tile.size[1]
+    def tile_h(self) -> int:
+        """Height of the tile image used for the background if it exists, 0 otherwise."""
+        return self._tile.size[1] if self._tile is not None else 0
 
     @property
-    def _bg_w(self) -> int:
-        return self._bg.size[0]
+    def background_w(self) -> int:
+        """Width of the background image if it exists, 0 otherwise."""
+        return self._bg_img.size[0] if self._bg_img is not None else 0
 
     @property
-    def _bg_h(self) -> int:
-        return self._bg.size[1]
-
-    @property
-    def _view_w(self) -> int:
-        return self._canvas.winfo_width()
-
-    @property
-    def _view_h(self) -> int:
-        return self._canvas.winfo_height()
-
-    @property
-    def _view_x(self) -> int:
-        return self._view_pos[0]
-
-    @_view_x.setter
-    def _view_x(self, val: int):
-        self._view_pos = val, self._view_pos[1]
-
-    @property
-    def _view_y(self) -> int:
-        return self._view_pos[1]
-
-    @_view_y.setter
-    def _view_y(self, val: int):
-        self._view_pos = self._view_pos[0], val
-
-    @property
-    def _scrollregion_bounds_x(self) -> Tuple[float, float]:
-        sr = self._canvas.cget('scrollregion').split()
-        return float(sr[0]), float(sr[2])
-
-    @property
-    def _scrollregion_bounds_y(self) -> Tuple[float, float]:
-        sr = self._canvas.cget('scrollregion').split()
-        return float(sr[1]), float(sr[3])
+    def background_h(self) -> int:
+        """Height of the background image if it exists, 0 otherwise."""
+        return self._bg_img.size[1] if self._bg_img is not None else 0
 
     def _resize_background(self, w, h) -> None:
-        if w <= self._bg_w and h <= self._bg_h:
+        if self._tile is None:
+            return
+
+        if w <= self.background_w and h <= self.background_h:
             return
 
         # Adjust w and h to be multiples of tile size
-        w = w - w % self._tile_w + 2 * self._tile_w
-        h = h - h % self._tile_h + 2 * self._tile_h
+        w = w - w % self.tile_w + 2 * self.tile_w
+        h = h - h % self.tile_h + 2 * self.tile_h
 
         # Create img and copy already existing background
-        new_bg = Image.new('RGB', (w, h))
-        new_bg.paste(self._bg)
+        bg = PIL.Image.new('RGB', (w, h))
+        if self._bg_img is not None:
+            bg.paste(self._bg_img)
 
         # Fill missing tiles
-        for x in range(self._bg_w, w, self._tile_w):
-            for y in range(0, self._bg_h, self._tile_h):
-                new_bg.paste(self._tile, (x, y))
-        for x in range(0, w, self._tile_w):
-            for y in range(self._bg_h, h, self._tile_h):
-                new_bg.paste(self._tile, (x, y))
+        for x in range(self.background_w, w, self.tile_w):
+            for y in range(0, self.background_h, self.tile_h):
+                bg.paste(self._tile, (x, y))
+        for x in range(0, w, self.tile_w):
+            for y in range(self.background_h, h, self.tile_h):
+                bg.paste(self._tile, (x, y))
 
         # Update background
-        self._bg = new_bg
-        self._imgtk = ImageTk.PhotoImage(self._bg)
-        self._canvas.itemconfig(self.TAG, image=self._imgtk)
+        self._bg_img = bg
+        self._bg_photoimg = PILPhotoImage(self._bg_img)
+        self.itemconfig(self.TAG, image=self._bg_photoimg)
 
-    def _scroll_background(
-        self,
-        axis: Literal['x'] | Literal['y'],
-        method: Literal['scroll'] | Literal['moveto'],
-        number: str,
-        what: Optional[Literal['units'] | Literal['pages']]=None,
-    ):
-        n = float(number)
-        pos = self._view_x if axis == 'x' else self._view_y
+    def _scroll_background(self) -> None:
+        if self._tile is None:
+            return
 
-        # Calculate new position
-        if method == 'scroll':
-            # Ignore mypy error, `what` is guaranteed to be 'units' or 'pages' if method is 'scroll'
-            pos += int(n * self._get_scroll_unit(axis, what)) # type: ignore
-        else:
-            v1, v2 = self._scrollregion_bounds_x if axis == 'x' else self._scrollregion_bounds_y
-            pos = int((v2 - v1) * n + v1)
-
-        # Update axis position and background
-        bg_x, bg_y = self._canvas.coords(self.TAG)
-        if axis == 'x':
-            self._view_x = pos
-            bg_x = pos // self._tile.size[0] * self._tile.size[0]
-        else:
-            self._view_y = pos
-            bg_y = pos // self._tile.size[1] * self._tile.size[1]
-        self._canvas.coords(self.TAG, bg_x, bg_y)
-
-    def _get_scroll_unit(
-        self,
-        axis: Literal['x'] | Literal['y'],
-        what: Literal['units'] | Literal['pages']
-    ) -> float:
-        size = self._view_w if axis == 'x' else self._view_h
-        if what == 'pages':
-            return size * 9 / 10
-
-        inc = self._canvas.cget(axis + 'scrollincrement')
-        if inc == "" or int(inc) <= 0:
-            return size / 10
-
-        return int(inc)
+        bg_x, bg_y = self.coords(self.TAG)
+        bg_x = self.view_x // self.tile_w * self.tile_w
+        bg_y = self.view_y // self.tile_h * self.tile_h
+        self.coords(self.TAG, bg_x, bg_y)

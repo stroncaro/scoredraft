@@ -2,8 +2,6 @@ from enum import Enum
 from tkinter import Canvas
 from typing import Tuple
 
-from PIL import Image
-
 from sdcanvas import STYLES
 from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 
@@ -12,7 +10,7 @@ from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 # Current implementation is fine for prototyping, but its important to deal with this debt
 # before expanding the canvas functionality, otherwise the code will become unwieldly fast
 
-class SDCanvas(AreaMixin, DrawMixin, ViewMixin, Canvas):
+class SDCanvas(AreaMixin, DrawMixin, BGMixin, ViewMixin, Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
 
     def __init__(self, parent, **kwargs) -> None:
@@ -28,14 +26,8 @@ class SDCanvas(AreaMixin, DrawMixin, ViewMixin, Canvas):
             confine=False,
         )
 
-        #if self.cget('scrollregion'):
-        #    self._data_bounds = [float(s) for s in self.cget('scrollregion').split()]
-        #else:
-        #    self._data_bounds = [float('inf'), float('inf'), float('-inf'), float('-inf')]
-
         bg_file = 'backgrounds/paper5_1.png'
-        tile = Image.open(bg_file)
-        self._tile_bg_handler = BGMixin(self, tile)
+        self.set_background_tile(bg_file)
 
         self._svg = SVGMixin(
             self, self.active_area, self.items,
@@ -50,20 +42,10 @@ class SDCanvas(AreaMixin, DrawMixin, ViewMixin, Canvas):
         self.bind('<B3-Motion>', self._scroll_drag)
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
-        self.bind('<Configure>', self._tile_bg_handler.on_configure)
-
         self.bind('z', lambda _: self.remove_last_item())
         self.bind('s', lambda _: self._svg.save('test.svg'))
         self.bind('l', lambda _: self._svg.load('test.svg'))
         self.focus_set()
-
-    #def xview(self, *args):
-    #    self._tile_bg_handler.on_xview(*args)
-    #    return super().xview(*args)
-
-    #def yview(self, *args):
-    #    self._tile_bg_handler.on_yview(*args)
-    #    return super().yview(*args)
 
     def _draw_init(self, event):
         if self._state != SDCanvas.STATE.IDLE:
