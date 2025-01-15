@@ -71,7 +71,7 @@ class ViewMixin(tk.Canvas):
         method: ScrollMethod,
         number: str,
         what: Optional[ScrollUnit]=None,
-    ):
+    ) -> None:
         n = float(number)
         pos = self.view_x if axis == 'x' else self.view_y
 
