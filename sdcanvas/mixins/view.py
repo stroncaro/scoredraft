@@ -1,3 +1,6 @@
+"""
+Viewport position tracking for the SDCanvas class.
+"""
 from typing import cast, Literal, Optional, Tuple, TypeVar
 
 import tkinter as tk

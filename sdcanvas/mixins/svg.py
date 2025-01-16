@@ -1,63 +1,46 @@
+"""
+Save and load the contents of the SDCanvas to an svg file.
+"""
+from typing import Any, List, Literal, Tuple
+
 import base64
-from decimal import Decimal
 from itertools import chain
-from tkinter import Canvas
-from typing import Dict, List, Literal, Optional, Tuple
 from xml.etree import ElementTree
 
-from PIL import Image as PILImage
 from svg import (
     Circle, Defs, Element, Image, Length, Pattern,
     Polyline, PreserveAspectRatio, Rect, Style, SVG
 )
 
-# TODO: instead of receiving style, receive drawing methods?
+from sdcanvas import STYLES
+from sdcanvas.mixins import BGMixin, DrawMixin, AreaMixin
+
 # TODO: save in git friendly svg file
 
-class SVGMixin:
+SVG_STYLE = "".join(f"""
+    polyline {{
+        stroke: {STYLES.LINE['fill']};
+        stroke-width: {STYLES.LINE['width']};
+        fill: none;
+    }}
+
+    circle {{
+        fill: {STYLES.OVAL['fill']};
+    }}
+""".split())
+
+class SVGMixin(BGMixin, DrawMixin, AreaMixin):
     """Handle saving and loading to svg files"""
-    STYLE = "".join("""
-        polyline {
-            stroke: gray;
-            stroke-width: 3;
-            fill: none;
-        }
-
-        circle {
-            fill: gray;
-        }
-    """.split())
-
-    _canvas: Canvas
-    _canvas_items: List[int]
-    _canvas_bounds: List[float]
-    _bg_file: Optional[str]
-    _bg_size: Optional[Tuple[int, int]]
-    _oval_style: Dict[str, str]
-    _line_style: Dict[str, str]
-
-    def __init__(
-        self, canvas: Canvas, bounds: List[float], items: List[int], *,
-        bg_file: Optional[str]=None,
-        oval_style: Optional[Dict[str, str]]=None,
-        line_style: Optional[Dict[str, str]]=None,
-    ) -> None:
-        self._canvas = canvas
-        self._canvas_items = items
-        self._canvas_bounds = bounds
-        self._bg_file = bg_file
-        self._bg_size = PILImage.open(bg_file).size if bg_file is not None else None
-        self._oval_style = oval_style or {}
-        self._line_style = line_style or {}
 
     def save(self, file: str) -> None:
         x, y, w, h = self._get_xywh()
 
-        def_element = Defs(elements=[Style(text=self.STYLE)])
+        def_element = Defs(elements=[Style(text=SVG_STYLE)])
         elements: List[Element] = [def_element]
         self._save_bg(def_element, elements)
 
-        items = self._canvas_items
+        # TODO: save item order?
+        items = self.items
         ovals = (self._save_oval(i, x, y) for i in items if self._get_item_type(i) == 'oval')
         lines = (self._save_line(i, x, y) for i in items if self._get_item_type(i) == 'line')
         elements += list(chain(ovals, lines))
@@ -67,23 +50,24 @@ class SVGMixin:
         with open(file, 'w', encoding='utf-8') as f:
             f.write(str(svg))
 
-    def load(self, file: str) -> List[int]:
+    def load(self, file: str) -> None:
         svg = ElementTree.parse(file).getroot()
         ns = {"svg": "http://www.w3.org/2000/svg"}
-        ovals = (self._load_oval(e) for e in svg.findall('.//svg:circle', ns))
-        lines = (self._load_line(e) for e in svg.findall('.//svg:polyline', ns))
-        item_ids = list(chain(ovals, lines))
-        return item_ids
+        for oval in svg.findall('.//svg:circle', ns):
+            self._load_oval(oval)
+        for line in svg.findall('.//svg:polyline', ns):
+            self._load_line(line)
 
     def _get_xywh(self) -> Tuple[float, float, float, float]:
         # unpack
-        x = self._canvas_bounds[0]
-        y = self._canvas_bounds[1]
-        w = self._canvas_bounds[2] - x
-        h = self._canvas_bounds[3] - y
+        # TODO: add properties to AreaMixin
+        x = self.active_area[0]
+        y = self.active_area[1]
+        w = self.active_area[2] - x
+        h = self.active_area[3] - y
 
         # adjust offset for bg_size
-        bg_x, bg_y = self._bg_size or (0, 0)
+        bg_x, bg_y = self.tile_size
         if bg_x > 0:
             x = (x // bg_x) * -bg_x
         if bg_y > 0:
@@ -92,12 +76,12 @@ class SVGMixin:
         return x, y, w, h
 
     def _save_bg(self, defs: Defs, elems: List[Element]) -> None:
-        if self._bg_file is None or self._bg_size is None:
+        if not self.has_background:
             return
 
-        img_b64 = self._img_to_base64(self._bg_file)
+        img_b64 = self._img_to_base64(self.background_tile) # type: ignore
         img = Image(
-            id='tile', href=img_b64, x=0, y=0, width=self._bg_size[0], height=self._bg_size[1],
+            id='tile', href=img_b64, x=0, y=0, width=self.tile_w, height=self.tile_h,
             preserveAspectRatio=PreserveAspectRatio('none')
         )
         pattern = Pattern(
@@ -112,7 +96,7 @@ class SVGMixin:
         elems += [bg_rect]
 
     def _get_item_type(self, item_id: int) -> Literal['oval'] | Literal['line']:
-        item_type = self._canvas.type(item_id)
+        item_type = self.type(item_id)
         match item_type:
             case 'oval' | 'line':
                 return item_type
@@ -125,24 +109,23 @@ class SVGMixin:
         return f"data:image/png;base64,{img}"
 
     def _save_oval(self, item_id: int, x_offset: float, y_offset: float) -> Circle:
-        coords = self._canvas.coords(item_id)
+        coords = self.coords(item_id)
         r = (coords[2] - coords[0]) / 2
         cx = (coords[0] + coords[2]) / 2 + x_offset
         cy = (coords[1] + coords[3]) / 2 + y_offset
         return Circle(cx=cx, cy=cy, r=r)
 
     def _save_line(self, item_id: int, x_offset: float, y_offset: float) -> Polyline:
-        points: List[Decimal | float | int] = list(
+        points: List[Any] = list(
             v + (x_offset, y_offset)[i % 2]
-            for i, v in enumerate(self._canvas.coords(item_id))
+            for i, v in enumerate(self.coords(item_id))
         )
         return Polyline(points=points)
 
-    def _load_oval(self, e: ElementTree.Element) -> int:
-        cx, cy, r = (float(e.attrib[k]) for k in ('cx', 'cy', 'r'))
-        x1, y1, x2, y2 = cx - r, cy - r, cx + r, cy + r
-        return self._canvas.create_oval(x1, y1, x2, y2, **self._oval_style) # type: ignore
+    def _load_oval(self, e: ElementTree.Element) -> None:
+        cx, cy = (float(e.attrib[k]) for k in ('cx', 'cy'))
+        self.draw_point(cx, cy)
 
-    def _load_line(self, e: ElementTree.Element) -> int:
+    def _load_line(self, e: ElementTree.Element) -> None:
         points = (float(p) for p in e.attrib['points'].split())
-        return self._canvas.create_line(*points, **self._line_style) # type: ignore
+        self.draw_line(*points)

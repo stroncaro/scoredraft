@@ -1,11 +1,12 @@
+"""
+Active area tracking for the SDCanvas class.
+"""
 from typing import List, Optional
 
 from itertools import chain, islice
+import tkinter as tk
 
-from ._uses import UseCanvas
-
-
-class AreaMixin(UseCanvas):
+class AreaMixin(tk.Canvas):
     """Keeps track of and updates active area (area where there are elements)"""
 
     active_area: List[float] = [float('inf'), float('inf'), float('-inf'), float('-inf')]
@@ -26,17 +27,17 @@ class AreaMixin(UseCanvas):
 
     def update_active_area_from_item(self, item_id: int):
         """Grow active area to hold item, if necessary."""
-        coords = self._canvas.coords(item_id)
+        coords = self.coords(item_id)
         self.update_active_area(*coords)
 
     def update_active_area_from_all_items(self, items: List[int]):
         """Grow active area to hold all items in the canvas."""
-        coords = chain(*(self._canvas.coords(item) for item in items))
+        coords = chain(*(self.coords(item) for item in items))
         self.reset_active_area()
         self.update_active_area(*coords)
 
     def _update_scrollregion(self, area: Optional[List[float]]=None):
-        sr = self._canvas.cget('scrollregion')
+        sr = self.cget('scrollregion')
         if not sr:
             return
 
@@ -45,4 +46,4 @@ class AreaMixin(UseCanvas):
         old = tuple(float(n) for n in sr.split())
 
         new_sr = min(old[0], new[0]), min(old[1], new[1]), max(old[2], new[2]), max(old[3], new[3])
-        self._canvas.config(scrollregion=new_sr)
+        self.config(scrollregion=new_sr)

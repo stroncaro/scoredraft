@@ -1,4 +1,8 @@
-from typing import Optional
+"""
+Memory efficient tiling background on infinite canvas for the SDCanvas class.
+"""
+from typing import Optional, Tuple
+
 import tkinter as tk
 
 import PIL.Image
@@ -77,6 +81,11 @@ class BGMixin(ViewMixin, tk.Canvas):
         self._resize_background(event.width, event.height)
 
     @property
+    def tile_size(self) -> Tuple[int, int]:
+        """Size tuple of the background tile."""
+        return self._tile.size if self._tile is not None else (0, 0)
+
+    @property
     def tile_w(self) -> int:
         """Width of the tile image used for the background if it exists, 0 otherwise."""
         return self._tile.size[0] if self._tile is not None else 0
@@ -85,6 +94,11 @@ class BGMixin(ViewMixin, tk.Canvas):
     def tile_h(self) -> int:
         """Height of the tile image used for the background if it exists, 0 otherwise."""
         return self._tile.size[1] if self._tile is not None else 0
+
+    @property
+    def background_size(self) -> Tuple[int, int]:
+        """Size tuple of the background image."""
+        return self._bg_img.size if self._bg_img is not None else (0, 0)
 
     @property
     def background_w(self) -> int:

@@ -1,16 +1,11 @@
-from enum import Enum
-from tkinter import Canvas
 from typing import Tuple
 
-from sdcanvas import STYLES
+from enum import Enum
+import tkinter as tk
+
 from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 
-# TODO: refactor state handling and other components into encapsulated parts.
-# Tkinter virtual events can help with decoupling, but a complete rework is needed
-# Current implementation is fine for prototyping, but its important to deal with this debt
-# before expanding the canvas functionality, otherwise the code will become unwieldly fast
-
-class SDCanvas(AreaMixin, DrawMixin, BGMixin, ViewMixin, Canvas):
+class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
     STATE = Enum('STATE', ['IDLE', 'DRAW', 'LINE', 'SCROLL'])
 
     def __init__(self, parent, **kwargs) -> None:
@@ -29,11 +24,6 @@ class SDCanvas(AreaMixin, DrawMixin, BGMixin, ViewMixin, Canvas):
         bg_file = 'backgrounds/paper5_1.png'
         self.set_background_tile(bg_file)
 
-        self._svg = SVGMixin(
-            self, self.active_area, self.items,
-            bg_file=bg_file, oval_style=STYLES.OVAL, line_style=STYLES.LINE
-        )
-
         self.bind('<ButtonPress-1>', self._draw_init)
         self.bind('<B1-Motion>', self._draw_drag)
         self.bind('<ButtonRelease-1>', self._draw_end)
@@ -43,8 +33,8 @@ class SDCanvas(AreaMixin, DrawMixin, BGMixin, ViewMixin, Canvas):
         self.bind('<ButtonRelease-3>', self._scroll_end)
 
         self.bind('z', lambda _: self.remove_last_item())
-        self.bind('s', lambda _: self._svg.save('test.svg'))
-        self.bind('l', lambda _: self._svg.load('test.svg'))
+        self.bind('s', lambda _: self.save('test.svg'))
+        self.bind('l', lambda _: self.load('test.svg'))
         self.focus_set()
 
     def _draw_init(self, event):
