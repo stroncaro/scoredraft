@@ -33,7 +33,8 @@ class SVGMixin(BGMixin, DrawMixin, AreaMixin):
     """Handle saving and loading to svg files"""
 
     def save(self, file: str) -> None:
-        x, y, w, h = self._get_xywh()
+        """Save canvas items to an svg file."""
+        x, y, w, h = self._get_adjusted_active_area_xywh()
 
         def_element = Defs(elements=[Style(text=SVG_STYLE)])
         elements: List[Element] = [def_element]
@@ -51,6 +52,7 @@ class SVGMixin(BGMixin, DrawMixin, AreaMixin):
             f.write(str(svg))
 
     def load(self, file: str) -> None:
+        """Load canvas items from svg file."""
         svg = ElementTree.parse(file).getroot()
         ns = {"svg": "http://www.w3.org/2000/svg"}
         for oval in svg.findall('.//svg:circle', ns):
@@ -58,23 +60,19 @@ class SVGMixin(BGMixin, DrawMixin, AreaMixin):
         for line in svg.findall('.//svg:polyline', ns):
             self._load_line(line)
 
-    def _get_xywh(self) -> Tuple[float, float, float, float]:
-        # unpack
-        # TODO: add properties to AreaMixin
-        x = self.active_area[0]
-        y = self.active_area[1]
-        w = self.active_area[2] - x
-        h = self.active_area[3] - y
+    def _get_adjusted_active_area_xywh(self) -> Tuple[float, float, float, float]:
+        x, y = self.active_area_position
+        w, h = self.active_area_size
 
-        # adjust offset for bg_size
-        bg_x, bg_y = self.tile_size
-        if bg_x > 0:
-            x = (x // bg_x) * -bg_x
-        if bg_y > 0:
-            y = (y // bg_y) * -bg_y
-        w += bg_x
-        h += bg_y
-        
+        # adjust for tile size
+        tile_w, tile_h = self.tile_size
+        if tile_w > 0:
+            x = (x // tile_w) * -tile_w
+        if tile_h > 0:
+            y = (y // tile_h) * -tile_h
+        w += tile_w
+        h += tile_h
+
         return x, y, w, h
 
     def _save_bg(self, defs: Defs, elems: List[Element]) -> None:
