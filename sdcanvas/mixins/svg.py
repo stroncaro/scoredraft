@@ -72,7 +72,9 @@ class SVGMixin(BGMixin, DrawMixin, AreaMixin):
             x = (x // bg_x) * -bg_x
         if bg_y > 0:
             y = (y // bg_y) * -bg_y
-
+        w += bg_x
+        h += bg_y
+        
         return x, y, w, h
 
     def _save_bg(self, defs: Defs, elems: List[Element]) -> None:
