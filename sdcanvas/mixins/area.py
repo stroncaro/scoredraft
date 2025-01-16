@@ -22,7 +22,7 @@ class AreaMixin(tk.Canvas):
             self.active_area[2] = max(x, self.active_area[2])
         for y in islice(coords, 1, None, 2):
             self.active_area[1] = min(y, self.active_area[1])
-            self.active_area[3] = min(y, self.active_area[3])
+            self.active_area[3] = max(y, self.active_area[3])
         self._update_scrollregion()
 
     def update_active_area_from_item(self, item_id: int):
