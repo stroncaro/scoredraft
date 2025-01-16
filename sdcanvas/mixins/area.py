@@ -1,7 +1,7 @@
 """
 Active area tracking for the SDCanvas class.
 """
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from itertools import chain, islice
 import tkinter as tk
@@ -10,6 +10,36 @@ class AreaMixin(tk.Canvas):
     """Keeps track of and updates active area (area where there are elements)"""
 
     active_area: List[float] = [float('inf'), float('inf'), float('-inf'), float('-inf')]
+
+    @property
+    def active_area_position(self) -> Tuple[float, float]:
+        """Coordinates of the upper left point of the active area of the canvas as an x, y pair."""
+        return self.active_area[0], self.active_area[1]
+
+    @property
+    def active_area_x(self) -> float:
+        """Upper left x coordinate of the canvas active area."""
+        return self.active_area[0]
+
+    @property
+    def active_area_y(self) -> float:
+        """Upper left y coordinate of the canvas active area."""
+        return self.active_area[1]
+
+    @property
+    def active_area_size(self) -> Tuple[float, float]:
+        """Size tuple of the active area."""
+        return self.active_area_w, self.active_area_h
+
+    @property
+    def active_area_w(self) -> float:
+        """Width of the active area."""
+        return self.active_area[2] - self.active_area[0]
+
+    @property
+    def active_area_h(self) -> float:
+        """Heigth of the active area."""
+        return self.active_area[3] - self.active_area[1]
 
     def reset_active_area(self):
         """Reset the active area to empty."""
