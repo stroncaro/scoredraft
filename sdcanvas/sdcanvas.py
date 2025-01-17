@@ -3,7 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 
 from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
-from sdcanvas.states.idle import IdleState
+from sdcanvas.states import init_state_machine
 
 class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
 
@@ -19,34 +19,34 @@ class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
 
         self.set_background_tile('backgrounds/paper5_1.png')
 
-        self.state = IdleState(self)
-        self.bind('<ButtonPress-1>', self.on_rmb_press)
-        self.bind('<B1-Motion>', self.on_rmb_drag)
-        self.bind('<ButtonRelease-1>', self.on_rmb_release)
-        self.bind('<ButtonPress-3>', self.on_lmb_press)
-        self.bind('<B3-Motion>', self.on_lmb_drag)
-        self.bind('<ButtonRelease-3>', self.on_lmb_release)
-        self.bind('<Key>', self.on_key)
+        self._state = init_state_machine(self)
+        self.bind('<ButtonPress-1>', self._on_rmb_press)
+        self.bind('<B1-Motion>', self._on_rmb_drag)
+        self.bind('<ButtonRelease-1>', self._on_rmb_release)
+        self.bind('<ButtonPress-3>', self._on_lmb_press)
+        self.bind('<B3-Motion>', self._on_lmb_drag)
+        self.bind('<ButtonRelease-3>', self._on_lmb_release)
+        self.bind('<Key>', self._on_key)
 
         self.focus_set()
 
-    def on_rmb_press(self, event):
-        self.state = self.state.on_rmb_press(event)
+    def _on_rmb_press(self, event):
+        self._state = self._state.on_rmb_press(event)
 
-    def on_rmb_drag(self, event):
-        self.state = self.state.on_rmb_drag(event)
+    def _on_rmb_drag(self, event):
+        self._state = self._state.on_rmb_drag(event)
 
-    def on_rmb_release(self, event):
-        self.state = self.state.on_rmb_release(event)
+    def _on_rmb_release(self, event):
+        self._state = self._state.on_rmb_release(event)
 
-    def on_lmb_press(self, event):
-        self.state = self.state.on_lmb_press(event)
+    def _on_lmb_press(self, event):
+        self._state = self._state.on_lmb_press(event)
 
-    def on_lmb_drag(self, event):
-        self.state = self.state.on_lmb_drag(event)
+    def _on_lmb_drag(self, event):
+        self._state = self._state.on_lmb_drag(event)
 
-    def on_lmb_release(self, event):
-        self.state = self.state.on_lmb_release(event)
+    def _on_lmb_release(self, event):
+        self._state = self._state.on_lmb_release(event)
 
-    def on_key(self, event):
-        self.state = self.state.on_key(event)
+    def _on_key(self, event):
+        self._state = self._state.on_key(event)

@@ -12,7 +12,7 @@ class SDCanvasState(ABC):
     "Base state machine class for SDCanvas input handling."
     _sdc: SDCanvas
 
-    def __init__(self, canvas: SDCanvas, data: Optional[Any]=None) -> None:
+    def __init__(self, canvas: SDCanvas, data: Optional[Any] = None) -> None:
         self._sdc = canvas
         self._data = data
         self.on_enter()
