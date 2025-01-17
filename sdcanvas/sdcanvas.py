@@ -6,7 +6,7 @@ from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 from sdcanvas.states import init_state_machine
 
 class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
-
+    "ScoreDraft canvas: Tk Canvas with custom functionality."
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
 
