@@ -3,6 +3,7 @@ from typing import Tuple
 from sdcanvas.states import State
 
 class DrawState(State):
+    "User is drawing. Depending on following input, result could be a point or a line."
     _xy: Tuple[int, int]
 
     def on_enter(self, event, data=None):

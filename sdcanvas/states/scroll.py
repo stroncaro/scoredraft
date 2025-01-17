@@ -3,6 +3,7 @@ from typing import Tuple
 from sdcanvas.states import State
 
 class ScrollState(State):
+    "User is scrolling the view with the mouse."
     _xy: Tuple[int, int]
 
     def on_enter(self, event, data=None):

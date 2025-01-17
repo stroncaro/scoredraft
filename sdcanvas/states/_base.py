@@ -17,10 +17,10 @@ class SDCanvasState(ABC):
         self.on_enter(event, data)
 
     def on_enter(self, event: tk.Event, data: Optional[Any] = None) -> None:
-        "Invoked after entering state."
+        "Invoked after entering state. Override to add functionality."
 
     def on_exit(self) -> None:
-        "Invoked before exiting state."
+        "Invoked before exiting state. Override to add functionality."
 
     def on_rmb_press(self, event: tk.Event) -> SDCanvasState:
         "Override to handle right mouse button presses."
@@ -56,7 +56,7 @@ class SDCanvasState(ABC):
         event: tk.Event,
         data: Optional[Any] = None
     ) -> SDCanvasState:
-        "Return a new state, passing data if given."
+        "Return a new state. Pass event that triggered the change, and extra data (if given)."
         self.on_exit()
         return state(self._sdc, event, data)
 

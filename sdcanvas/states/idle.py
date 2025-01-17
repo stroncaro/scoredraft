@@ -1,6 +1,7 @@
 from sdcanvas.states import State
 
 class IdleState(State):
+    "Waiting for input."
     def on_rmb_press(self, event):
         from sdcanvas.states.draw import DrawState
         return self.transition_to(DrawState, event)
