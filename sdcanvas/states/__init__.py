@@ -8,4 +8,4 @@ if TYPE_CHECKING:
 
 def init_state_machine(sdc: SDCanvas) -> State:
     from .idle import IdleState
-    return IdleState(sdc)
+    return IdleState(sdc, None) # type: ignore

@@ -1,16 +1,13 @@
-from __future__ import annotations
-
 from sdcanvas.states import State
 
 class IdleState(State):
     def on_rmb_press(self, event):
         from sdcanvas.states.draw import DrawState
-        xy = self._get_xy_from_event(event)
-        return self.transition_to(DrawState, xy)
+        return self.transition_to(DrawState, event)
 
     def on_lmb_press(self, event):
         from sdcanvas.states.scroll import ScrollState
-        return ScrollState(self._sdc, event)
+        return self.transition_to(ScrollState, event)
 
     def on_key(self, event):
         match event.keysym:
