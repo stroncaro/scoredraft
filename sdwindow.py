@@ -27,6 +27,10 @@ class SDWindow(Tk):
         sx.grid(column=0, row=1, sticky='we')
         sy.grid(column=1, row=0, sticky='ns')
 
+        subc = SDCanvas(sp, highlightbackground='green', highlightcolor='green', highlightthickness=2)
+        subc.create_line(25, 25, 75, 75, fill='red', width=3)
+        sp.create_window(0, 0, anchor='nw', width=100, height=100, window=subc)
+
 if __name__ == "__main__":
     sd = SDWindow()
     sd.mainloop()
