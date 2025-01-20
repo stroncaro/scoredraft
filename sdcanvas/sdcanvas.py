@@ -4,6 +4,7 @@ from typing import List, Tuple
 from dataclasses import dataclass
 import tkinter as tk
 
+from sdcanvas import STYLES
 from sdcanvas.mixins import AreaMixin, BGMixin, DrawMixin, SVGMixin, ViewMixin
 from sdcanvas.states import State, init_state_machine
 
@@ -51,11 +52,11 @@ class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
 
     def create_subcanvas(self, x: float, y: float, w: float, h: float) -> None:
         "Initialize a SDCanvas child on the canvas."
-        _, x, y, instance = self._get_sc_chain(x, y)[-1]
+        _, x, y, parent = self._get_sc_chain(x, y)[-1]
 
-        subcanvas = SDCanvas(instance, highlightbackground='green', highlightcolor='green', highlightthickness=2)
-        subcanvas_id = instance.create_window(x, y, width=w, height=h, window=subcanvas, anchor='nw')
-        instance._subcanvases.append(SubCanvasRegister(subcanvas, subcanvas_id, x, y, x+w, y+h))
+        subcanvas = SDCanvas(parent, **STYLES.SUBCANVAS)
+        subcanvas_id = parent.create_window(x, y, width=w, height=h, window=subcanvas, anchor='nw')
+        parent._subcanvases.append(SubCanvasRegister(subcanvas, subcanvas_id, x, y, x+w, y+h))
 
     def canvas_instance_on_xy(self, x: float, y: float) -> SDCanvas:
         "Get the active subcanvas on coordinates x, y."

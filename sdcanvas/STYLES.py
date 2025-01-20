@@ -15,3 +15,9 @@ LINE: Dict[str, Any] = {
     'joinstyle': 'round',
     'capstyle': 'round',
 }
+
+SUBCANVAS: Dict[str, Any] = {
+    'highlightbackground': 'green', 
+    'highlightcolor': 'green', 
+    'highlightthickness': '2',
+}
