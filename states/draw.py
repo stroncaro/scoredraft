@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from sdcanvas.states import State
+from . import State
 
 class DrawState(State):
     "User is drawing. Depending on following input, result could be a point or a line."
@@ -10,13 +10,13 @@ class DrawState(State):
         self._xy = self._get_canvas_xy(event)
 
     def on_rmb_drag(self, event):
-        from sdcanvas.states.drawline import DrawLineState
+        from .drawline import DrawLineState
         xy = self._get_canvas_xy(event)
         self._sdc.start_line(*self._xy, *xy)
         return self.transition_to(DrawLineState, event)
 
     def on_rmb_release(self, event):
-        from sdcanvas.states.idle import IdleState
+        from .idle import IdleState
         xy = self._get_canvas_xy(event)
         self._sdc.draw_point(*xy)
         return self.transition_to(IdleState, event)

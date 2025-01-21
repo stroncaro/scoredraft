@@ -1,13 +1,13 @@
-from sdcanvas.states import State
+from . import State
 
 class IdleState(State):
     "Waiting for input."
     def on_rmb_press(self, event):
-        from sdcanvas.states.draw import DrawState
+        from .draw import DrawState
         return self.transition_to(DrawState, event)
 
     def on_lmb_press(self, event):
-        from sdcanvas.states.scroll import ScrollState
+        from .scroll import ScrollState
         return self.transition_to(ScrollState, event)
 
     def on_key(self, event):

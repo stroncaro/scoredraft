@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from sdcanvas.states import State
+from . import State
 
 class ScrollState(State):
     "User is scrolling the view with the mouse."
@@ -26,5 +26,5 @@ class ScrollState(State):
         return self
 
     def on_lmb_release(self, event):
-        from sdcanvas.states.idle import IdleState
+        from .idle import IdleState
         return self.transition_to(IdleState, event)

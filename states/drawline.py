@@ -1,4 +1,4 @@
-from sdcanvas.states import State
+from . import State
 
 class DrawLineState(State):
     "User is drawing a line."
@@ -8,6 +8,6 @@ class DrawLineState(State):
         return self
 
     def on_rmb_release(self, event):
-        from sdcanvas.states.idle import IdleState
+        from .idle import IdleState
         self._sdc.end_line()
         return self.transition_to(IdleState, event)
