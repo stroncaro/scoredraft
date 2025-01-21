@@ -9,6 +9,7 @@ from states import State, init_state_machine
 class SDWindow(Tk):
     """Main ScoreDraft window"""
 
+    _canvas: SDCanvas
     _state: State
 
     def __init__(self) -> None:
@@ -22,19 +23,19 @@ class SDWindow(Tk):
         fr.grid_columnconfigure(0, weight=1)
         fr.grid_rowconfigure(0, weight=1)
 
-        sp = SDCanvas(fr, scrollregion=(0, 0, 400, 400))
-        sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=sp.xview)
-        sy = ttk.Scrollbar(fr, orient=VERTICAL, command=sp.yview)
-        sp.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
+        canvas = SDCanvas(fr, scrollregion=(0, 0, 400, 400))
+        sx = ttk.Scrollbar(fr, orient=HORIZONTAL, command=canvas.xview)
+        sy = ttk.Scrollbar(fr, orient=VERTICAL, command=canvas.yview)
+        canvas.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
 
-        sp.grid(column=0, row=0, sticky='nwse')
+        canvas.grid(column=0, row=0, sticky='nwse')
         sx.grid(column=0, row=1, sticky='we')
         sy.grid(column=1, row=0, sticky='ns')
 
-        sp.create_subcanvas(0, 0, 100, 100)
-        sp.create_subcanvas(20, 20, 50, 50)
+        canvas.create_subcanvas(0, 0, 100, 100)
+        canvas.create_subcanvas(20, 20, 50, 50)
 
-        self._state = init_state_machine(sp)
+        self._state = init_state_machine(canvas)
         self.bind('<ButtonPress-1>', self._on_rmb_press)
         self.bind('<B1-Motion>', self._on_rmb_drag)
         self.bind('<ButtonRelease-1>', self._on_rmb_release)
@@ -43,6 +44,8 @@ class SDWindow(Tk):
         self.bind('<ButtonRelease-3>', self._on_lmb_release)
         self.bind('<Key>', self._on_key)
         self.focus_set()
+
+        self._canvas = canvas
 
     def _on_rmb_press(self, event):
         self._state = self._state.on_rmb_press(event)
