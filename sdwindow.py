@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Any, List
+
 from tkinter import Tk, HORIZONTAL, VERTICAL
 from tkinter import ttk
 
@@ -11,6 +14,7 @@ class SDWindow(Tk):
 
     _canvas: SDCanvas
     _state: State
+    _bypass_click_widgets: List[Any]
 
     def __init__(self) -> None:
         super().__init__()
@@ -28,6 +32,8 @@ class SDWindow(Tk):
         sy = ttk.Scrollbar(fr, orient=VERTICAL, command=canvas.yview)
         canvas.configure(xscrollcommand=sx.set, yscrollcommand=sy.set)
 
+        self._bypass_click_widgets = [sx, sy]
+
         canvas.grid(column=0, row=0, sticky='nwse')
         sx.grid(column=0, row=1, sticky='we')
         sy.grid(column=1, row=0, sticky='ns')
@@ -36,18 +42,20 @@ class SDWindow(Tk):
         canvas.create_subcanvas(20, 20, 50, 50)
 
         self._state = init_state_machine(canvas)
-        canvas.bind('<ButtonPress-1>', self._on_rmb_press)
-        canvas.bind('<B1-Motion>', self._on_rmb_drag)
-        canvas.bind('<ButtonRelease-1>', self._on_rmb_release)
-        canvas.bind('<ButtonPress-3>', self._on_lmb_press)
-        canvas.bind('<B3-Motion>', self._on_lmb_drag)
-        canvas.bind('<ButtonRelease-3>', self._on_lmb_release)
+        self.bind('<ButtonPress-1>', self._on_rmb_press)
+        self.bind('<B1-Motion>', self._on_rmb_drag)
+        self.bind('<ButtonRelease-1>', self._on_rmb_release)
+        self.bind('<ButtonPress-3>', self._on_lmb_press)
+        self.bind('<B3-Motion>', self._on_lmb_drag)
+        self.bind('<ButtonRelease-3>', self._on_lmb_release)
         self.bind('<Key>', self._on_key)
         self.focus_set()
 
         self._canvas = canvas
 
     def _on_rmb_press(self, event):
+        if event.widget in self._bypass_click_widgets:
+            return
         self._state = self._state.on_rmb_press(event)
 
     def _on_rmb_drag(self, event):
@@ -57,6 +65,8 @@ class SDWindow(Tk):
         self._state = self._state.on_rmb_release(event)
 
     def _on_lmb_press(self, event):
+        if event.widget in self._bypass_click_widgets:
+            return
         self._state = self._state.on_lmb_press(event)
 
     def _on_lmb_drag(self, event):
