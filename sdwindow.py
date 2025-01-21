@@ -36,12 +36,12 @@ class SDWindow(Tk):
         canvas.create_subcanvas(20, 20, 50, 50)
 
         self._state = init_state_machine(canvas)
-        self.bind('<ButtonPress-1>', self._on_rmb_press)
-        self.bind('<B1-Motion>', self._on_rmb_drag)
-        self.bind('<ButtonRelease-1>', self._on_rmb_release)
-        self.bind('<ButtonPress-3>', self._on_lmb_press)
-        self.bind('<B3-Motion>', self._on_lmb_drag)
-        self.bind('<ButtonRelease-3>', self._on_lmb_release)
+        canvas.bind('<ButtonPress-1>', self._on_rmb_press)
+        canvas.bind('<B1-Motion>', self._on_rmb_drag)
+        canvas.bind('<ButtonRelease-1>', self._on_rmb_release)
+        canvas.bind('<ButtonPress-3>', self._on_lmb_press)
+        canvas.bind('<B3-Motion>', self._on_lmb_drag)
+        canvas.bind('<ButtonRelease-3>', self._on_lmb_release)
         self.bind('<Key>', self._on_key)
         self.focus_set()
 
