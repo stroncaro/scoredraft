@@ -7,7 +7,7 @@ class ScrollState(State):
     _xy: Tuple[int, int]
 
     def on_enter(self, event, data=None):
-        self._xy = event.x, event.y
+        self._xy = event.x_root, event.y_root
         self._sdc.config(cursor="hand1")
 
     def on_exit(self):
@@ -15,7 +15,7 @@ class ScrollState(State):
 
     def on_lmb_drag(self, event):
         x1, y1 = self._xy
-        x2, y2 = event.x, event.y
+        x2, y2 = event.x_root, event.y_root
         x_units = x1 - x2
         y_units = y1 - y2
         if x_units != 0:
