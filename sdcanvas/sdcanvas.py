@@ -22,28 +22,56 @@ class SDCanvas(SVGMixin, BGMixin, ViewMixin, DrawMixin, AreaMixin, tk.Canvas):
     "ScoreDraft canvas: Tk Canvas with custom functionality."
 
     _subcanvases: List[SubCanvasRegister]
+    _master_offset_x: float
+    _master_offset_y: float
+    _boundary_w: float
+    _boundary_h: float
 
-    def __init__(self, parent, **kwargs) -> None:
+    def __init__(self, parent, master_x: float = 0, master_y: float = 0, **kwargs) -> None:
         super().__init__(parent, **kwargs)
-
-        self.configure(
-            # needed for drag scrolling to work
-            xscrollincrement=1, yscrollincrement=1,
-            # allow going out of scrollregion
-            confine=False,
-        )
 
         self._subcanvases = []
 
+        # TODO: rework rmb scrolling so that these are not needed
+        self.configure(xscrollincrement=1, yscrollincrement=1)
+
+        self._master_offset_x = master_x
+        self._master_offset_y = master_y
+
+        self._boundary_w = kwargs.get('width', -1)
+        self._boundary_h = kwargs.get('height', -1)
+        if self._boundary_w == -1 and self._boundary_h == -1:
+            self.configure(confine=False)
+
         self.set_background_tile('backgrounds/paper5_1.png')
 
-    def create_subcanvas(self, x: float, y: float, w: float, h: float) -> None:
-        "Initialize a SDCanvas child on the canvas."
-        _, x, y, parent = self._get_sc_chain(x, y)[-1]
+    @property
+    def master_offset_x(self) -> float:
+        "X location of this canvas on the master canvas."
+        return self._master_offset_x
 
-        subcanvas = SDCanvas(parent, **STYLES.SUBCANVAS)
-        subcanvas_id = parent.create_window(x, y, width=w, height=h, window=subcanvas, anchor='nw')
-        parent._subcanvases.append(SubCanvasRegister(subcanvas, subcanvas_id, x, y, x+w, y+h))
+    @property
+    def master_offset_y(self) -> float:
+        "Y location of this canvas on the master canvas."
+        return self._master_offset_y
+
+    @property
+    def boundary_w(self) -> float:
+        "Usable width of this canvas, -1 if infinite."
+        return self._boundary_w
+
+    @property
+    def boundary_h(self) -> float:
+        "Usable height of this canvas, -1 if infinite."
+        return self._boundary_h
+
+    def create_subcanvas(self, master_x: float, master_y: float, w: float, h: float) -> None:
+        "Initialize a SDCanvas child on the canvas."
+        _, px, py, parent = self._get_sc_chain(master_x, master_y)[-1]
+
+        subcanvas = SDCanvas(parent, master_x, master_y, width=w, height=h, **STYLES.SUBCANVAS)
+        subcanvas_id = parent.create_window(px, py, width=w, height=h, window=subcanvas, anchor='nw')
+        parent._subcanvases.append(SubCanvasRegister(subcanvas, subcanvas_id, px, py, px+w, py+h))
 
     def canvas_instance_on_xy(self, x: float, y: float) -> SDCanvas:
         "Get the active subcanvas on coordinates x, y."

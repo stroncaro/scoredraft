@@ -60,7 +60,7 @@ class SDCanvasState(ABC):
         self.on_exit()
         return state(self._sdc, event, data)
 
-    def _get_canvas_xy(self, event: tk.Event) -> Tuple[int, int]:
+    def _get_master_canvas_xy(self, event: tk.Event) -> Tuple[int, int]:
         "Extract the x, y pair from the event and return it as absolute canvas coordinates."
         x = event.x_root - self._sdc.winfo_rootx()
         y = event.y_root - self._sdc.winfo_rooty()

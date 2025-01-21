@@ -1,22 +1,34 @@
-from typing import Tuple
+from __future__ import annotations
+from typing import Tuple, TYPE_CHECKING
 
 from . import State
 
+if TYPE_CHECKING:
+    from sdcanvas import SDCanvas
+
 class DrawState(State):
     "User is drawing. Depending on following input, result could be a point or a line."
-    _xy: Tuple[int, int]
+    _xy: Tuple[float, float]
+    _target: SDCanvas
 
     def on_enter(self, event, data=None):
-        self._xy = self._get_canvas_xy(event)
+        self._xy = self._get_target_xy(event, initialize_target=True)
 
     def on_rmb_drag(self, event):
         from .drawline import DrawLineState
-        xy = self._get_canvas_xy(event)
-        self._sdc.start_line(*self._xy, *xy)
-        return self.transition_to(DrawLineState, event)
+        xy = self._get_target_xy(event)
+        self._target.start_line(*self._xy, *xy)
+        return self.transition_to(DrawLineState, event, data=self._target)
 
     def on_rmb_release(self, event):
         from .idle import IdleState
-        xy = self._get_canvas_xy(event)
-        self._sdc.draw_point(*xy)
+        self._target.draw_point(*self._xy)
         return self.transition_to(IdleState, event)
+
+    def _get_target_xy(self, event, *, initialize_target=False) -> Tuple[float, float]:
+        abs_x, abs_y = self._get_master_canvas_xy(event)
+
+        if initialize_target:
+            self._target = self._sdc.canvas_instance_on_xy(abs_x, abs_y)
+
+        return abs_x - self._target.master_offset_x, abs_y - self._target.master_offset_y
