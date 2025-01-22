@@ -6,7 +6,7 @@ from . import State
 if TYPE_CHECKING:
     from sdcanvas import SDCanvas
 
-class DrawState(State):
+class DrawPointState(State):
     "User is drawing. Depending on following input, result could be a point or a line."
     _xy: Tuple[float, float]
     _target: SDCanvas

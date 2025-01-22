@@ -6,7 +6,7 @@ class IdleState(State):
         if self._ctrl_pressed(event):
             from .drawsubcanvas import DrawSubcanvasState as Next
         else:
-            from .draw import DrawState as Next
+            from .drawpoint import DrawPointState as Next
         return self.transition_to(Next, event)
 
     def on_lmb_press(self, event):
