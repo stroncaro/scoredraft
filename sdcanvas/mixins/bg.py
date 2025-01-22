@@ -48,7 +48,12 @@ class BGMixin(ViewMixin, tk.Canvas):
         # Create new background
         self._tile = tile
         self._configure_bind_id = self.bind('<Configure>', self._on_configure, add=True)
-        self.create_image(*self.view_position, image=None, anchor='nw', tags=self.TAG)
+
+        # TODO: values from SDCanvas not on current class inheritance chain, move to ViewMixin?
+        bg_x = self.view_x - self._master_offset_x % self.tile_w # type: ignore
+        bg_y = self.view_y - self._master_offset_y % self.tile_h # type: ignore
+
+        self.create_image(bg_x, bg_y, image=None, anchor='nw', tags=self.TAG)
         self._resize_background(self.view_w, self.view_h)
 
     def clear_background(self) -> None:
