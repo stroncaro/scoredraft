@@ -17,8 +17,12 @@ class DrawSubcanvasState(State):
         self._initial_xy = xy
 
     def on_rmb_drag(self, event) -> State:
-        xy = self._get_target_xy(event)
-        self._target.resize_rect(*xy)
+        x, y = self._get_target_xy(event)
+        ix, iy = self._initial_xy
+        if x < ix or y < iy:
+            self._target.resize_rect(x, y, ix, iy)
+        else:
+            self._target.resize_rect(ix, iy, x, y)
         return self
 
     def on_rmb_release(self, event) -> State:
