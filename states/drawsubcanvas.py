@@ -17,16 +17,19 @@ class DrawSubcanvasState(State):
         self._initial_xy = xy
 
     def on_rmb_drag(self, event) -> State:
-        x, y = self._get_target_xy(event)
-        ix, iy = self._initial_xy
-        if x < ix or y < iy:
-            self._target.resize_rect(x, y, ix, iy)
-        else:
-            self._target.resize_rect(ix, iy, x, y)
+        self._target.resize_rect(*self._get_coords(event))
         return self
 
     def on_rmb_release(self, event) -> State:
         self._target.remove_temporary_item()
+
+        x1, y1, x2, y2 = self._get_coords(event)
+        subc_abs_x = x1 + self._target.master_offset_x
+        subc_abs_y = y1 + self._target.master_offset_y
+        subc_width = x2 - x1
+        subc_height = y2 - y1
+        self._sdc.create_subcanvas(subc_abs_x, subc_abs_y, subc_width, subc_height)
+
         from .idle import IdleState
         return self.transition_to(IdleState, event)
 
@@ -37,3 +40,12 @@ class DrawSubcanvasState(State):
             self._target = self._sdc.canvas_instance_on_xy(abs_x, abs_y)
 
         return abs_x - self._target.master_offset_x, abs_y - self._target.master_offset_y
+
+    def _get_coords(self, event) -> Tuple[float, float, float, float]:
+        x2, y2 = self._get_target_xy(event)
+        x1, y1 = self._initial_xy
+        if x2 < x1:
+            x1, x2 = x2, x1
+        if y2 < y1:
+            y1, y2 = y2, y1
+        return x1, y1, x2, y2

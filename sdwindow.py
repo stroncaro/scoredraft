@@ -38,9 +38,6 @@ class SDWindow(Tk):
         sx.grid(column=0, row=1, sticky='we')
         sy.grid(column=1, row=0, sticky='ns')
 
-        canvas.create_subcanvas(0, 0, 100, 100)
-        canvas.create_subcanvas(20, 20, 50, 50)
-
         self._state = init_state_machine(canvas)
         self.bind('<ButtonPress-1>', self._on_rmb_press)
         self.bind('<B1-Motion>', self._on_rmb_drag)
