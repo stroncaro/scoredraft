@@ -13,16 +13,20 @@ class DrawState(State):
 
     def on_enter(self, event, data=None):
         self._xy = self._get_target_xy(event, initialize_target=True)
+        self._sdc.draw_point(*self._xy, temporary=True)
 
     def on_rmb_drag(self, event):
-        from .drawline import DrawLineState
+        self._sdc.remove_temporary_item()
         xy = self._get_target_xy(event)
         self._target.start_line(*self._xy, *xy)
+
+        from .drawline import DrawLineState
         return self.transition_to(DrawLineState, event, data=self._target)
 
     def on_rmb_release(self, event):
+        self._sdc.add_temporary_item()
+
         from .idle import IdleState
-        self._target.draw_point(*self._xy)
         return self.transition_to(IdleState, event)
 
     def _get_target_xy(self, event, *, initialize_target=False) -> Tuple[float, float]:
