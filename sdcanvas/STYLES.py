@@ -16,6 +16,11 @@ LINE: Dict[str, Any] = {
     'capstyle': 'round',
 }
 
+RECT: Dict[str, Any] = {
+    'width': '2',
+    'outline': 'green',
+}
+
 SUBCANVAS: Dict[str, Any] = {
     'highlightbackground': 'green', 
     'highlightcolor': 'green', 

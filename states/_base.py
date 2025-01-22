@@ -67,3 +67,8 @@ class SDCanvasState(ABC):
         x = self._sdc.canvasx(x)
         y = self._sdc.canvasy(y)
         return (int(x), int(y))
+
+    def _ctrl_pressed(self, event: tk.Event) -> bool:
+        if isinstance(event.state, int) and event.state & 0x0004:
+            return True
+        return False

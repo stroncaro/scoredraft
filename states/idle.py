@@ -3,8 +3,11 @@ from . import State
 class IdleState(State):
     "Waiting for input."
     def on_rmb_press(self, event):
-        from .draw import DrawState
-        return self.transition_to(DrawState, event)
+        if self._ctrl_pressed(event):
+            from .drawsubcanvas import DrawSubcanvasState as Next
+        else:
+            from .draw import DrawState as Next
+        return self.transition_to(Next, event)
 
     def on_lmb_press(self, event):
         from .scroll import ScrollState

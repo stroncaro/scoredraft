@@ -58,6 +58,18 @@ class DrawMixin(AreaMixin, tk.Canvas):
         self.items.append(self._active_item_id)
         self._active_item_id = None
 
+    def start_rect(self, x: float, y: float) -> None:
+        if self._active_item_id is not None:
+            return
+
+        self._active_item_id = self.create_rectangle(x, y, x, y, **STYLES.RECT)
+
+    def resize_rect(self, x: float, y: float) -> None:
+        if self._active_item_id is None:
+            return
+
+        self.coords(self._active_item_id, *self.coords(self._active_item_id)[:2], x, y)
+
     def add_temporary_item(self):
         if self._active_item_id:
             self.items.append(self._active_item_id)
